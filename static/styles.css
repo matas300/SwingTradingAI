@@ -463,6 +463,13 @@ th {
   color: var(--text-heading);
 }
 
+.summary-card-level small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
 .summary-banner {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);

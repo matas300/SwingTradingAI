@@ -87,6 +87,19 @@ function formatOperationalPrice(signal, value) {
   return formatDisplayPrice(value, signal === "NO TRADE" ? "Non attivo" : "Non disponibile");
 }
 
+function calculateMovePct(entry, level) {
+  const entryNumber = toNumber(entry);
+  const levelNumber = toNumber(level);
+  if (entryNumber === null || levelNumber === null || entryNumber === 0) return null;
+  return Math.abs(levelNumber - entryNumber) / Math.abs(entryNumber) * 100;
+}
+
+function formatMovePct(entry, level, fallback = "Non disponibile") {
+  const pct = calculateMovePct(entry, level);
+  if (pct === null) return fallback;
+  return `${pct.toLocaleString("it-IT", { minimumFractionDigits: 1, maximumFractionDigits: 2 })}%`;
+}
+
 function normalizeTickers(raw) {
   return raw
     .split(/[\n,;\s]+/)
@@ -641,12 +654,14 @@ function renderPlanCell(setup) {
   const sizeNote = size > 0
     ? `Size indicativa: ${size} azioni.`
     : "Size calcolata nulla con il rischio attuale.";
+  const lossPct = formatMovePct(pricing.entry, pricing.stop, decision.operational_signal === "NO TRADE" ? "Non attivo" : "Non disponibile");
+  const gainPct = formatMovePct(pricing.entry, pricing.target, decision.operational_signal === "NO TRADE" ? "Non attivo" : "Non disponibile");
 
   return `
     <div class="summary-stack summary-plan">
       <div class="summary-price-line"><span>Entrata</span><strong>${escapeHtml(formatOperationalPrice(decision.operational_signal, pricing.entry))}</strong></div>
-      <div class="summary-price-line"><span>Stop</span><strong>${escapeHtml(formatOperationalPrice(decision.operational_signal, pricing.stop))}</strong></div>
-      <div class="summary-price-line"><span>Target</span><strong>${escapeHtml(formatOperationalPrice(decision.operational_signal, pricing.target))}</strong></div>
+      <div class="summary-price-line"><span>Stop</span><strong>${escapeHtml(formatOperationalPrice(decision.operational_signal, pricing.stop))} (${escapeHtml(lossPct)})</strong></div>
+      <div class="summary-price-line"><span>Target</span><strong>${escapeHtml(formatOperationalPrice(decision.operational_signal, pricing.target))} (${escapeHtml(gainPct)})</strong></div>
       <div class="summary-sub">${escapeHtml(sizeNote)}</div>
     </div>
   `;
@@ -740,6 +755,8 @@ function renderSummaryLevels(setup) {
 
   const size = Number(pricing.position_size || 0);
   const sizeText = size > 0 ? `${size} azioni` : "N/D";
+  const lossPct = formatMovePct(pricing.entry, pricing.stop);
+  const gainPct = formatMovePct(pricing.entry, pricing.target);
 
   return `
     <div class="summary-card-levels">
@@ -750,10 +767,12 @@ function renderSummaryLevels(setup) {
       <div class="summary-card-level">
         <span>Stop</span>
         <strong>${escapeHtml(formatDisplayPrice(pricing.stop))}</strong>
+        <small>Perdita ${escapeHtml(lossPct)}</small>
       </div>
       <div class="summary-card-level">
         <span>Target</span>
         <strong>${escapeHtml(formatDisplayPrice(pricing.target))}</strong>
+        <small>Guadagno ${escapeHtml(gainPct)}</small>
       </div>
       <div class="summary-card-level">
         <span>Size</span>
@@ -926,7 +945,9 @@ function renderTickerCards(setups, failures, historyByTicker, ui = {}) {
               ["Grade", decision.grade],
               ["Entry", formatOperationalPrice(decision.operational_signal, pricing.entry)],
               ["Stop", formatOperationalPrice(decision.operational_signal, pricing.stop)],
+              ["Perdita potenziale", formatMovePct(pricing.entry, pricing.stop, decision.operational_signal === "NO TRADE" ? "Non attiva" : "Non disponibile")],
               ["Target", formatOperationalPrice(decision.operational_signal, pricing.target)],
+              ["Guadagno potenziale", formatMovePct(pricing.entry, pricing.target, decision.operational_signal === "NO TRADE" ? "Non attiva" : "Non disponibile")],
               ["Size", pricing.position_size ?? (decision.operational_signal === "NO TRADE" ? "Non attiva" : "Non disponibile")],
               ["Size multiplier", `${Number(pricing.size_multiplier).toFixed(2)}x`],
             ])}

@@ -1442,6 +1442,13 @@ def format_pct(value: float | None) -> str:
     return f"{value:+.2%}"
 
 
+def format_move_pct(entry: float | None, level: float | None) -> str:
+    if entry is None or level is None or entry == 0:
+        return "n/a"
+    pct = abs(float(level) - float(entry)) / abs(float(entry))
+    return f"{pct:.2%}"
+
+
 def signal_label(signal: Signal) -> str:
     return {
         "LONG": "LONG",
@@ -1550,7 +1557,9 @@ def print_setup(setup: TradeSetup) -> None:
         )
         print(
             f"Rischio/azione {format_price(setup.risk_per_share)} | "
-            f"Reward/azione {format_price(setup.reward_per_share)}"
+            f"Reward/azione {format_price(setup.reward_per_share)} | "
+            f"Perdita potenziale {format_move_pct(setup.entry, setup.stop)} | "
+            f"Guadagno potenziale {format_move_pct(setup.entry, setup.target)}"
         )
     print(
         "Conferme tecniche:"

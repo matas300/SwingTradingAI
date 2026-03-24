@@ -88,6 +88,12 @@ def serialize_market_context(context: Any, macro_news: Any) -> dict[str, Any]:
     }
 
 
+def move_pct(entry: float | None, level: float | None) -> float | None:
+    if entry is None or level is None or pd.isna(entry) or pd.isna(level) or entry == 0:
+        return None
+    return abs(float(level) - float(entry)) / abs(float(entry)) * 100
+
+
 def serialize_setup(setup: Any, *, compact: bool = False) -> dict[str, Any]:
     macro_headlines = [] if compact else sanitize(setup.macro_news.headlines)
     company_headlines = [] if compact else sanitize(setup.company_news.headlines)
@@ -109,6 +115,8 @@ def serialize_setup(setup: Any, *, compact: bool = False) -> dict[str, Any]:
             "target": serialize_scalar(setup.target),
             "risk_per_share": serialize_scalar(setup.risk_per_share),
             "reward_per_share": serialize_scalar(setup.reward_per_share),
+            "loss_pct": serialize_scalar(move_pct(setup.entry, setup.stop)),
+            "gain_pct": serialize_scalar(move_pct(setup.entry, setup.target)),
             "position_size": setup.position_size,
             "size_multiplier": setup.position_multiplier,
             "entry_label": format_price(setup.entry),
