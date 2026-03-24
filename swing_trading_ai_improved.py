@@ -213,6 +213,13 @@ class ScannerConfig:
     elevated_event_risk_threshold: float = 5.0
     vix_risk_on_ceiling: float = 18.0
     vix_risk_off_floor: float = 22.0
+    long_rsi_hard_ceiling: float = 75.0
+    long_extension_pct_limit: float = 0.025
+    long_extension_atr_limit: float = 1.2
+    long_breakout_extension_pct_limit: float = 0.01
+    risk_off_pullback_pct_limit: float = 0.012
+    risk_off_pullback_atr_limit: float = 0.6
+    risk_off_long_rsi_ceiling: float = 68.0
     chart_points: int = 90
     scan_workers: int = 3
 
@@ -243,6 +250,10 @@ class DailyAnalysis:
     relative_strength_3m: float
     breakout_ready: bool
     breakdown_ready: bool
+    close_vs_ema_fast_pct: float
+    close_vs_resistance_pct: float | None
+    extension_above_ema_fast_atr: float
+    pullback_long_ready: bool
 
 
 @dataclass
@@ -559,6 +570,27 @@ def analyze_daily(df: pd.DataFrame, benchmark_df: pd.DataFrame, config: ScannerC
 
     breakout_ready = resistance is not None and last["Close"] >= resistance * (1 - config.breakout_tolerance)
     breakdown_ready = support is not None and last["Close"] <= support * (1 + config.breakout_tolerance)
+    close_vs_ema_fast_pct = float((last["Close"] - last["ema_fast"]) / last["ema_fast"]) if last["ema_fast"] else 0.0
+    close_vs_resistance_pct = (
+        float((last["Close"] - resistance) / resistance)
+        if resistance not in {None, 0}
+        else None
+    )
+    extension_above_ema_fast_atr = (
+        float((last["Close"] - last["ema_fast"]) / last["atr"])
+        if last["atr"] and not pd.isna(last["atr"]) and last["atr"] > 0
+        else 0.0
+    )
+    pullback_long_ready = (
+        trend == "UP"
+        and pd.notna(last["sma50"])
+        and last["Close"] > last["sma50"]
+        and last["ema_fast"] > last["ema_slow"]
+        and 50 <= last["rsi"] <= config.risk_off_long_rsi_ceiling
+        and close_vs_ema_fast_pct <= config.risk_off_pullback_pct_limit
+        and extension_above_ema_fast_atr <= config.risk_off_pullback_atr_limit
+        and not breakout_ready
+    )
 
     bull_checks = [
         trend == "UP",
@@ -617,6 +649,10 @@ def analyze_daily(df: pd.DataFrame, benchmark_df: pd.DataFrame, config: ScannerC
         relative_strength_3m=rs_3m,
         breakout_ready=breakout_ready,
         breakdown_ready=breakdown_ready,
+        close_vs_ema_fast_pct=close_vs_ema_fast_pct,
+        close_vs_resistance_pct=close_vs_resistance_pct,
+        extension_above_ema_fast_atr=extension_above_ema_fast_atr,
+        pullback_long_ready=pullback_long_ready,
     )
 
 
@@ -1104,6 +1140,13 @@ def build_technical_signal(
         warnings.append("daily volatility is compressed")
     if daily.volume_label == "Volume low":
         warnings.append("daily volume is below average")
+    if daily.rsi > config.long_rsi_hard_ceiling:
+        warnings.append("long setup is overbought on RSI")
+    if (
+        daily.close_vs_ema_fast_pct > config.long_extension_pct_limit
+        or daily.extension_above_ema_fast_atr > config.long_extension_atr_limit
+    ):
+        warnings.append("price is extended above the fast trend line")
     confidence = max(0.0, min(confidence, 0.99))
     return signal, confidence, reasons, warnings
 
@@ -1136,22 +1179,45 @@ def build_signal(
 
     if signal != "NO TRADE":
         if signal == "LONG":
-            if market.risk_mode == "RISK_OFF":
-                confidence *= 0.78
-                warnings.append("macro regime risk-off: long aggressivi sconsigliati")
-            elif market.risk_mode == "MIXED":
-                confidence *= 0.92
+            if daily.rsi > config.long_rsi_hard_ceiling:
+                signal = "NO TRADE"
+                confidence = min(confidence, 0.45)
+                reasons = ["RSI troppo alto per aprire un nuovo long: titolo gia troppo tirato"]
+                warnings.append("overbought long blocked")
+            elif (
+                daily.close_vs_ema_fast_pct > config.long_extension_pct_limit
+                or daily.extension_above_ema_fast_atr > config.long_extension_atr_limit
+                or (
+                    daily.close_vs_resistance_pct is not None
+                    and daily.close_vs_resistance_pct > config.long_breakout_extension_pct_limit
+                )
+            ):
+                signal = "NO TRADE"
+                confidence = min(confidence, 0.48)
+                reasons = ["long bloccato: prezzo troppo esteso sopra EMA veloce o breakout gia troppo rincorso"]
+                warnings.append("extended breakout long blocked")
+            elif market.risk_mode == "RISK_OFF" and not daily.pullback_long_ready:
+                signal = "NO TRADE"
+                confidence = min(confidence, 0.5)
+                reasons = ["in regime risk-off i long sono consentiti solo su pullback, non su breakout estesi"]
+                warnings.append("risk-off longs require a pullback entry")
+            else:
+                if market.risk_mode == "RISK_OFF":
+                    confidence *= 0.78
+                    warnings.append("macro regime risk-off: long aggressivi sconsigliati")
+                elif market.risk_mode == "MIXED":
+                    confidence *= 0.92
 
-            if macro_news.level == "HIGH":
-                confidence *= 0.86
-            elif macro_news.level == "EXTREME":
-                if not (daily.breakout_ready and daily.adx >= config.min_adx + 5 and daily.volume_label == "Volume high"):
-                    signal = "NO TRADE"
-                    confidence = min(confidence, 0.5)
-                    reasons = ["macro risk troppo elevato per aprire nuovi long"]
-                    warnings.append("macro volatility extreme")
-                else:
-                    confidence *= 0.74
+                if macro_news.level == "HIGH":
+                    confidence *= 0.86
+                elif macro_news.level == "EXTREME":
+                    if not (daily.breakout_ready and daily.adx >= config.min_adx + 5 and daily.volume_label == "Volume high"):
+                        signal = "NO TRADE"
+                        confidence = min(confidence, 0.5)
+                        reasons = ["macro risk troppo elevato per aprire nuovi long"]
+                        warnings.append("macro volatility extreme")
+                    else:
+                        confidence *= 0.74
 
         elif signal == "SHORT":
             if market.risk_mode == "RISK_ON":
@@ -1174,22 +1240,24 @@ def build_signal(
                 else:
                     confidence *= 0.78
 
-        if company_news.level == "HIGH":
-            confidence *= 0.9
-            warnings.append("news aziendali rilevanti: size down")
-        elif company_news.level == "EXTREME":
-            signal = "NO TRADE"
-            confidence = min(confidence, 0.5)
-            reasons = ["news aziendali troppo impattanti per aprire un nuovo swing"]
-
-        if earnings.days_to_earnings is not None:
-            if 0 <= earnings.days_to_earnings <= 1:
+        if signal != "NO TRADE":
+            if company_news.level == "HIGH":
+                confidence *= 0.9
+                warnings.append("news aziendali rilevanti: size down")
+            elif company_news.level == "EXTREME":
                 signal = "NO TRADE"
                 confidence = min(confidence, 0.5)
-                reasons = ["trimestrale troppo vicina: evitare nuove aperture"]
-            elif 2 <= earnings.days_to_earnings <= 5:
-                confidence *= 0.8
-                reasons.append("trimestrale vicina: size ridotta o uscita preventiva")
+                reasons = ["news aziendali troppo impattanti per aprire un nuovo swing"]
+
+        if signal != "NO TRADE":
+            if earnings.days_to_earnings is not None:
+                if 0 <= earnings.days_to_earnings <= 1:
+                    signal = "NO TRADE"
+                    confidence = min(confidence, 0.5)
+                    reasons = ["trimestrale troppo vicina: evitare nuove aperture"]
+                elif 2 <= earnings.days_to_earnings <= 5:
+                    confidence *= 0.8
+                    reasons.append("trimestrale vicina: size ridotta o uscita preventiva")
 
         if signal != "NO TRADE":
             if macro_news.level in {"HIGH", "EXTREME"}:
