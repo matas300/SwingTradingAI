@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Swing Trading AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Trading dashboard</p>
+        <h1>Swing Trading AI</h1>
+        <p class="hero-copy">
+          Analisi tecnica, contesto macro, news azienda e calendario trimestrali in una sola vista.
+        </p>
+      </div>
+      <div class="hero-meta">
+        <div class="meta-chip">
+          <span>Motore</span>
+          <strong>Python + FastAPI</strong>
+        </div>
+        <div class="meta-chip">
+          <span>Fonte dati</span>
+          <strong>Solo close confermate</strong>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel control-panel">
+        <div class="panel-head">
+          <h2>Parametri</h2>
+          <p>Lancia lo scanner e aggiorna la dashboard.</p>
+        </div>
+
+        <form id="scan-form" class="form-grid">
+          <label>
+            <span>Ticker</span>
+            <textarea id="tickers" rows="5" placeholder="NVDA, AAPL, RACE"></textarea>
+          </label>
+
+          <div class="grid-two">
+            <label>
+              <span>Periodo daily</span>
+              <select id="daily-period">
+                <option value="3mo">3 mesi</option>
+                <option value="6mo">6 mesi</option>
+                <option value="1y">1 anno</option>
+                <option value="2y">2 anni</option>
+              </select>
+            </label>
+
+            <label>
+              <span>News lookback</span>
+              <input id="news-lookback-days" type="number" min="1" max="14" step="1">
+            </label>
+          </div>
+
+          <div class="grid-two">
+            <label>
+              <span>Account size</span>
+              <input id="account-size" type="number" min="1000" step="100">
+            </label>
+
+            <label>
+              <span>Risk per trade</span>
+              <input id="risk-per-trade" type="number" min="0.001" max="0.05" step="0.001">
+            </label>
+          </div>
+
+          <label class="toggle-card" for="news-enabled">
+            <div>
+              <span>Filtro news</span>
+              <small>Di default e spento. Se lo attivi, entrano in gioco news macro e news aziendali.</small>
+            </div>
+            <input id="news-enabled" type="checkbox">
+          </label>
+
+          <div class="actions">
+            <button id="submit-button" type="submit">Esegui scansione</button>
+            <button id="autoscan-button" type="button" class="secondary-button">Autoscan Top 100 USA</button>
+            <p id="status-line" class="status-line">Pronto.</p>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel overview-panel">
+        <div class="panel-head">
+          <h2>Panoramica</h2>
+          <p>Riepilogo operativo e timestamp dell'ultima analisi.</p>
+        </div>
+        <div id="overview-cards" class="overview-cards"></div>
+      </section>
+
+      <section class="panel context-panel">
+        <div class="panel-head">
+          <h2>Contesto Macro</h2>
+          <p>Regime di mercato e headline geopolitiche generali.</p>
+        </div>
+        <div id="macro-context" class="context-grid"></div>
+      </section>
+
+      <section class="panel summary-panel">
+        <div class="panel-head">
+          <h2>Tabella Finale</h2>
+          <p>Lettura rapida in linguaggio semplice: prima cosa dice il grafico, poi cosa conviene fare davvero.</p>
+        </div>
+        <div id="summary-table-wrap" class="table-wrap"></div>
+      </section>
+
+      <section class="panel cards-panel">
+        <div class="panel-head">
+          <h2>Dettaglio Ticker</h2>
+          <p>Grafico daily, storico salvato giorno per giorno, analisi tecnica, macro, news azienda e trimestrale.</p>
+        </div>
+        <div id="ticker-cards" class="ticker-cards"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

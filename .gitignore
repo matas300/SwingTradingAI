@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.runtime/
+history/
+scan_summary.csv
+*.sqlite3
+*.db
+*.log
+.claude/
+chrome_dump.html
+colab_output1.html
+colab_source.ipynb
+external_binary.js
