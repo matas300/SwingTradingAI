@@ -1,0 +1,8 @@
+[build]
+publish = "."
+command = "echo \"Static deploy for SwingTradingAI\""
+
+[[headers]]
+for = "/static/data/*"
+  [headers.values]
+  Cache-Control = "public, max-age=300"

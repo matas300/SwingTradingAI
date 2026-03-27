@@ -1,4 +1,5 @@
 __pycache__/
+.pytest_cache/
 *.pyc
 *.pyo
 *.pyd
@@ -13,3 +14,6 @@ chrome_dump.html
 colab_output1.html
 colab_source.ipynb
 external_binary.js
+desktop-*.png
+mobile-*.png
+backtest_*.csv
