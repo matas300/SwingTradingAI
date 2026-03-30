@@ -2,6 +2,15 @@
 publish = "."
 command = "echo \"Static deploy for SwingTradingAI\""
 
+[functions]
+directory = "netlify/functions"
+
+[[redirects]]
+from = "/api/*"
+to = "/.netlify/functions/api/:splat"
+status = 200
+force = true
+
 [[headers]]
 for = "/static/data/*"
   [headers.values]

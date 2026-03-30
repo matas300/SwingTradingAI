@@ -1,38 +1,69 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
+from .constants import DEFAULT_USER_ID
+from .repository import SYNC_TABLES
 from .storage import SQLiteStore
 
-TABLES = (
-    "users",
-    "watched_tickers",
-    "ticker_daily_snapshots",
-    "ticker_profiles",
-    "model_features",
-    "predictions",
-    "targets",
-    "signal_history",
-    "backtest_runs",
-    "ui_preferences",
-)
 
-
-def sync_sqlite_to_firestore(
-    *,
-    database_path: str | Path,
-    project_id: str,
-) -> None:
+def _firestore_client(project_id: str):
     try:
         from google.cloud import firestore
     except ImportError as exc:
         raise RuntimeError("google-cloud-firestore is required for Firestore sync") from exc
+    return firestore.Client(project=project_id)
 
-    store = SQLiteStore(database_path)
-    client = firestore.Client(project=project_id)
 
-    for table in TABLES:
-        rows = store.export_table_rows(table)
+def _sqlite_ready_value(value):
+    if isinstance(value, (dict, list)):
+        return json.dumps(value, ensure_ascii=True, separators=(",", ":"))
+    return value
+
+
+def sync_firestore_to_sqlite(*, database_path: str | Path, project_id: str) -> None:
+    repository = SQLiteStore(database_path)
+    repository.ensure_schema()
+    repository.seed_defaults(user_id=DEFAULT_USER_ID)
+    client = _firestore_client(project_id)
+
+    with repository.connect() as connection:
+        for table in SYNC_TABLES:
+            documents = list(client.collection(table).stream())
+            if not documents:
+                continue
+            table_info = connection.execute(f"PRAGMA table_info({table})").fetchall()
+            if not table_info:
+                continue
+            columns = [str(column["name"]) for column in table_info]
+            primary_key = next((str(column["name"]) for column in table_info if int(column["pk"])), columns[0])
+            for document in documents:
+                payload = document.to_dict() or {}
+                if primary_key not in payload:
+                    payload[primary_key] = document.id
+                row = {
+                    column: _sqlite_ready_value(payload[column])
+                    for column in columns
+                    if column in payload
+                }
+                if not row:
+                    continue
+                ordered_columns = list(row.keys())
+                placeholders = ", ".join("?" for _ in ordered_columns)
+                connection.execute(
+                    f"INSERT OR REPLACE INTO {table} ({', '.join(ordered_columns)}) VALUES ({placeholders})",
+                    tuple(row[column] for column in ordered_columns),
+                )
+        connection.commit()
+
+
+def sync_sqlite_to_firestore(*, database_path: str | Path, project_id: str) -> None:
+    repository = SQLiteStore(database_path)
+    client = _firestore_client(project_id)
+
+    for table in SYNC_TABLES:
+        rows = repository.export_table_rows(table)
         if not rows:
             continue
         batch = client.batch()
@@ -48,3 +79,7 @@ def sync_sqlite_to_firestore(
                 pending = 0
         if pending:
             batch.commit()
+
+    client.collection("_app").document("dashboard").set(
+        repository.build_dashboard_bundle(user_id=DEFAULT_USER_ID)
+    )

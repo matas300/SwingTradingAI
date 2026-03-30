@@ -2,133 +2,111 @@
 
 ## Decisione finale
 
-Scelta implementata: **Netlify + Firebase + GitHub Actions**, con un adattamento pragmatico:
+Stack finale:
 
-- **Netlify** serve il frontend statico.
-- **GitHub Actions** esegue il refresh giornaliero del motore Python.
-- **SQLite** e la fonte canonica locale del job.
-- **Firestore** e opzionale come mirror cloud, utile per persistenza off-repo.
-- **FastAPI** resta per sviluppo locale e admin/debug, non come backend pubblico always-on.
+- `Netlify` per il frontend statico
+- `Firebase Firestore` come persistenza cloud sincronizzata
+- `GitHub Actions` per il job giornaliero
+- `FastAPI + SQLite` per sviluppo locale e uso amministrativo
 
-Questa scelta e stata preferita a Cloudflare Workers/D1 per evitare una riscrittura innaturale del runtime Python verso un modello serverless meno adatto a `yfinance`, `pandas` e `ta`.
+La scelta evita un backend always-on a pagamento e mantiene il motore Python nel suo ambiente naturale. Firestore viene sincronizzato dal job giornaliero come store cloud del dataset e delle entita utente, mentre il motore analitico resta Python.
 
-## Flussi
+## Principi
+
+- il motore di mercato resta Python
+- il frontend legge snapshot e bundle JSON
+- il refresh avviene a batch giornaliero
+- i dati di studio e le posizioni reali sono entita distinte
+- la posizione e event-sourced, non un record statico
+
+## Flusso dati
 
 ### Locale
 
 1. `uvicorn app:app --reload`
 2. la UI chiama `GET /api/dashboard`
-3. un refresh esplicito usa `POST /api/refresh`
+3. il refresh manuale chiama `POST /api/refresh`
 4. la pipeline salva SQLite e rigenera `static/data/app-state.json`
 
 ### Produzione free-tier
 
-1. GitHub Actions schedulata esegue `python -m swing_trading.jobs.daily_refresh`
-2. il job aggiorna `history/swing_trading_ai.sqlite3`
-3. il job esporta `static/data/app-state.json`
-4. il workflow committa lo snapshot aggiornato
-5. Netlify ridistribuisce il frontend
-6. opzionalmente il job sincronizza le tabelle verso Firestore
+1. GitHub Actions esegue il refresh giornaliero
+2. il job aggiorna il dataset locale del workflow
+3. il job esporta il bundle statico
+4. Netlify serve il frontend
+5. Firestore riceve il push delle tabelle principali e puo rialimentare il job con un pull iniziale
 
 ## Componenti
 
 - `market_data.py`
-  scarica daily OHLCV confermati, costruisce indicatori e regime di mercato
+  scarica daily OHLCV confermati e costruisce le feature
 - `signal_engine.py`
-  costruisce fattori direzionali, livelli signed-safe, target multipli e warning flags
+  genera setup long/short spiegabili con entry, stop, target e warning flags
 - `calibration.py`
-  aggrega outcome storici in `ticker_profiles` e adatta confidence/target
+  aggiorna ticker profile e calibra confidence e target
+- `target_engine.py`
+  mantiene il riferimento all'entry originaria e al prezzo medio reale della posizione
+- `position_lifecycle.py`
+  ricostruisce lo stato reale da una sequenza di eventi
+- `position_policy.py`
+  produce la raccomandazione giornaliera per la posizione aperta
+- `repository.py`
+  espone persistenza, upsert, refresh posizione e bundle dashboard
 - `storage.py`
-  gestisce schema, upsert, bundle dashboard e dettaglio ticker
+  mantiene compatibilita con gli import precedenti
 - `service.py`
-  orchestra pipeline, seed watchlist, export statico e compatibilita con l'entrypoint legacy
-- `api.py`
-  espone read APIs e write APIs locali
+  orchestra il batch, il seed della watchlist e l'export JSON
 
-## Modello dati
+## Modello concettuale
 
-### `users`
+### Study layer
 
-- PK: `user_id`
-- Relazioni: padre di `watched_tickers`, `ui_preferences`
-- Timestamp: `created_at`, `updated_at`
-- Indici: PK
-- Retention: indefinita per il profilo demo locale
+Ticker osservati senza capitale impegnato. Per ogni ticker:
 
-### `watched_tickers`
+- snapshot giornalieri
+- storico segnali
+- profilo adattivo
+- target originari
 
-- PK: `watch_id`
-- Relazioni: `user_id -> users`
-- Timestamp: `created_at`, `updated_at`
-- Indici: `(user_id, is_active)`, unique `(user_id, ticker)`
-- Retention: indefinita, con `is_active` per archivio logico
+### Position layer
 
-### `ticker_daily_snapshots`
+Posizioni realmente aperte dall'utente. Per ogni posizione:
 
-- PK: `snapshot_id`
-- Relazioni: logiche verso ticker via `ticker`
-- Timestamp: `created_at`, `updated_at`
-- Indici: unique `(ticker, session_date)`, `(ticker, session_date desc)`
-- Retention: indefinita, base di replay e history
+- record di sintesi
+- eventi `OPEN`, `ADD`, `REDUCE`, `CLOSE`
+- snapshot giornalieri
+- recommendation history
+- target originari e target adattivi
 
-### `ticker_profiles`
+## Dati e relazioni
 
-- PK: `profile_id`
-- Relazioni: unique logica su `ticker`
-- Timestamp: `created_at`, `updated_at`
-- Indici: unique `ticker`, `reliability_score desc`
-- Retention: indefinita, stato adattivo corrente
+Le entita principali sono:
 
-### `model_features`
+- `users`
+- `watched_tickers`
+- `ticker_daily_snapshots`
+- `ticker_profiles`
+- `signals`
+- `signal_versions`
+- `signal_history`
+- `open_positions`
+- `position_events`
+- `position_daily_snapshots`
+- `position_recommendations`
+- `targets`
+- `target_revisions`
+- `backtest_runs`
+- `ui_preferences`
 
-- PK: `feature_id`
-- Relazioni: logiche verso `ticker_daily_snapshots`
-- Timestamp: `created_at`, `updated_at`
-- Indici: unique `(ticker, session_date, feature_set)`
-- Retention: indefinita nel refactor attuale; archiviabile in futuro
+## Tradeoff del free tier
 
-### `predictions`
-
-- PK: `prediction_id`
-- Relazioni: logiche verso `ticker`, `targets`, `signal_history`
-- Timestamp: `created_at`, `updated_at`
-- Indici: unique `(ticker, session_date)`, `(ticker, session_date desc)`
-- Retention: indefinita nel refactor attuale
-
-### `targets`
-
-- PK: `target_id`
-- Relazioni: `prediction_id -> predictions`
-- Timestamp: `created_at`, `updated_at`
-- Indici: unique `(prediction_id, kind)`
-- Retention: indefinita
-
-### `signal_history`
-
-- PK: `signal_id`
-- Relazioni: `prediction_id -> predictions`
-- Timestamp: `created_at`, `updated_at`
-- Indici: `prediction_id unique`, `(ticker, session_date desc)`
-- Retention: indefinita
-
-### `backtest_runs`
-
-- PK: `run_id`
-- Relazioni: nessuna stretta, ma collega i refresh schedulati
-- Timestamp: `started_at`, `completed_at`, `created_at`, `updated_at`
-- Indici: PK
-- Retention: storica; comprimibile in futuro
-
-### `ui_preferences`
-
-- PK: `preference_id`
-- Relazioni: `user_id -> users`
-- Timestamp: `created_at`, `updated_at`
-- Indici: `user_id unique`
-- Retention: finche il profilo esiste
+- `Netlify` e ottimo per frontend statici e cache
+- `Firestore` e utile per persistenza, ma con quote da monitorare
+- `GitHub Actions` e perfetto per un refresh giornaliero, meno per task frequenti
+- `SQLite` e ideale per locale e per il job batch, non per accesso concorrente pesante
 
 ## Limiti noti
 
-- Il mirror Firestore e opzionale e non ancora usato dal frontend.
-- Il backend pubblico in produzione e volutamente evitato: il frontend deployato e read-only rispetto ai dati di mercato.
-- La persistenza cloud della watchlist richiederebbe un ulteriore layer auth/admin se si volesse modificarla da Netlify senza passare dal job o dal backend locale.
+- il frontend deployato non sostituisce un backend realtime
+- il frontend deployato resta snapshot-first e le scritture cloud richiedono ancora un layer di auth/serverless dedicato se si vuole multiutente vero
+- il job giornaliero dipende da fonti esterne non garantite al 100 percento

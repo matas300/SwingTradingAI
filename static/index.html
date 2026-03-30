@@ -13,34 +13,36 @@
   <div class="app-shell">
     <aside class="sidebar">
       <div class="brand-block">
-        <p class="eyebrow">Adaptive swing research</p>
+        <p class="eyebrow">Daily swing operating system</p>
         <h1>SwingTradingAI</h1>
-        <p class="brand-copy">Daily-confirmed signal planning with per-ticker calibration, outcome history, and explainable targets.</p>
+        <p class="brand-copy">Separate research watchlists from real positions, keep target history, and review the next action every day.</p>
       </div>
 
       <nav class="nav-stack">
         <a href="#overview" data-nav="overview">Overview</a>
-        <a href="#watchlist" data-nav="watchlist">Watchlist</a>
-        <a href="#ticker" data-nav="ticker">Ticker Detail</a>
+        <a href="#watchlist" data-nav="watchlist">Study Watchlist</a>
         <a href="#signals" data-nav="signals">Signals</a>
+        <a href="#positions" data-nav="positions">Open Positions</a>
+        <a href="#ticker" data-nav="ticker">Ticker Detail</a>
+        <a href="#position" data-nav="position">Position Detail</a>
         <a href="#history" data-nav="history">History</a>
         <a href="#settings" data-nav="settings">Settings</a>
       </nav>
 
       <div class="sidebar-foot">
-        <span>Netlify-ready frontend</span>
-        <span>SQLite + Firestore sync pipeline</span>
+        <span>Local interactive mode: FastAPI + SQLite</span>
+        <span>Free deploy path: Netlify + Firebase + GitHub Actions</span>
       </div>
     </aside>
 
     <div class="workspace">
       <header class="topbar">
         <div>
-          <p class="eyebrow">Research console</p>
-          <h2>Signals, watchlist, detail, history</h2>
+          <p class="eyebrow">Operating console</p>
+          <h2>Study setups, open trades, and act on daily recommendations</h2>
         </div>
         <div class="topbar-actions">
-          <button id="refresh-button" class="primary-button" type="button">Refresh daily run</button>
+          <button id="refresh-button" class="primary-button" type="button">Run daily refresh</button>
           <button id="theme-toggle" class="secondary-button" type="button">Theme</button>
         </div>
       </header>
@@ -49,6 +51,8 @@
       <main id="app-content" class="app-content"></main>
     </div>
   </div>
+
+  <dialog id="app-dialog" class="app-dialog"></dialog>
 
   <script type="module" src="/static/app.js"></script>
 </body>

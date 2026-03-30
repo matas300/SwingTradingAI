@@ -14,6 +14,7 @@ DEFAULT_TICKERS = (
     "DUOL",
     "SAP",
     "RACE.MI",
+    "RACE",
     "ENI.MI",
     "ENEL.MI",
 )
@@ -123,5 +124,5 @@ TOP_100_US_TICKERS = (
 
 DEFAULT_USER_ID = "local-default-user"
 DEFAULT_USER_NAME = "Local Analyst"
-DEFAULT_DB_PATH = "history/swing_trading_ai.sqlite3"
+DEFAULT_DB_PATH = "history/swing_trading_ai_v2.sqlite3"
 DEFAULT_STATIC_EXPORT_PATH = "static/data/app-state.json"

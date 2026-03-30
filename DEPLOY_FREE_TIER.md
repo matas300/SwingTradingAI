@@ -1,79 +1,72 @@
 # Deploy Free Tier
 
-## Stack
+Stack consigliato:
 
-- Frontend: **Netlify**
-- Scheduler: **GitHub Actions**
-- Storage cloud opzionale: **Firebase Firestore**
-- Runtime locale/admin: **FastAPI**
+- `Frontend`: Netlify
+- `Database cloud`: Firebase Firestore
+- `Scheduler`: GitHub Actions
+- `Write API admin`: Netlify Functions
+- `Runtime locale`: FastAPI + SQLite
 
-## 1. Netlify
+## Perche questa architettura
+
+E la combinazione piu semplice per questo codicebase perche:
+
+- mantiene il core Python senza riscriverlo in JavaScript o Workers
+- evita server always-on
+- consente un frontend statico gratuito
+- permette un job giornaliero automatico
+- offre persistenza cloud con sync batch senza obbligare a tenere un backend always-on
+- consente scritture online admin senza esporre segreti nel client
+
+## Netlify
 
 - collega il repository a Netlify
-- usa `netlify.toml` gia presente
-- publish directory: `.` (root repo)
-- entrypoint pubblico: [`index.html`](index.html)
+- pubblica la root del repo
+- usa `index.html` come entrypoint statico
+- il frontend legge `static/data/app-state.json`
+- le route `/api/*` vengono risolte da Netlify Functions quando il backend locale non c'e
 
-Il frontend deployato legge `static/data/app-state.json`, quindi non dipende da un backend sempre acceso.
+## GitHub Actions
 
-## 2. GitHub Actions
+Il refresh giornaliero deve:
 
-Workflow: [`daily-refresh.yml`](.github/workflows/daily-refresh.yml)
+1. installare le dipendenze Python
+2. eseguire `python -m swing_trading.jobs.daily_refresh`
+3. esportare il bundle statico
+4. committare il nuovo snapshot se il workflow lo prevede
+5. opzionalmente sincronizzare i dati su Firestore
 
-Fa tre cose:
+## Firebase
 
-1. installa dipendenze Python
-2. esegue `python -m swing_trading.jobs.daily_refresh`
-3. committa il nuovo `static/data/app-state.json`
+Firestore serve come:
 
-Schedule attuale:
+- sync cloud dei dati canonici
+- persistenza cloud per watchlist, segnali e posizioni
+- base futura per auth e multiutente
 
-- `23:30 UTC`, lunedi-venerdi
+Le regole devono restare chiuse di default finche il client non implementa un flusso auth completo.
 
-Questo orario e stato scelto per stare comodamente dopo la chiusura USA in ogni periodo dell'anno.
+## Variabili ambiente
 
-## 3. Firebase opzionale
-
-Se vuoi il mirror cloud verso Firestore, aggiungi i secret:
-
-- `FIREBASE_PROJECT_ID`
-- `FIREBASE_SERVICE_ACCOUNT_JSON`
-
-Il workflow scrive il JSON della service account in un file temporaneo e usa `GOOGLE_APPLICATION_CREDENTIALS` solo dentro il job.
-
-Le regole Firestore incluse sono volutamente chiuse di default, perche il frontend non legge direttamente Firestore nel refactor corrente.
-
-## 4. Variabili locali
-
-Vedi [`.env.example`](.env.example):
+Vedi [`.env.example`](.env.example) per:
 
 - `DATABASE_PATH`
 - `STATIC_EXPORT_PATH`
 - `FIREBASE_PROJECT_ID`
 - `GOOGLE_APPLICATION_CREDENTIALS`
+- `FIREBASE_SERVICE_ACCOUNT_JSON`
+- `ADMIN_WRITE_TOKEN`
 
-## 5. Deploy locale di verifica
+## Free-tier tradeoff
 
-```bash
-python -m pip install -r requirements.txt
-python -m swing_trading.jobs.daily_refresh --no-firestore-sync
-python -m uvicorn app:app --reload
-```
+- `Netlify`: ottimo per static hosting, ma non per compute
+- `Firestore`: utile per persistenza, ma con quote da monitorare
+- `GitHub Actions`: perfetto per un refresh giornaliero, meno per task frequenti
+- `SQLite`: ideale per locale e per il job batch, non per accesso concorrente pesante
 
-## Limiti del free tier
+## Limiti operativi
 
-- GitHub Actions: minuti mensili limitati per repository privati
-- Netlify: bandwidth/build minutes limitati
-- Firestore: quote gratuite limitate su document reads/writes/storage
-- Nessun calcolo on-demand pubblico: i dati sono aggiornati al timestamp dell'ultimo job riuscito
-- `yfinance` non e una fonte enterprise: possono esistere ritardi, buchi o variazioni storiche
-
-## Consiglio operativo
-
-Per questo progetto specifico il free tier regge bene se:
-
-- l'aggiornamento resta giornaliero
-- il frontend legge snapshot statici
-- l'universo rimane Top 100 USA + watchlist ragionevole
-
-Se in futuro serviranno scansioni user-triggered a bassa latenza o multiutente reale, questa architettura andrebbe evoluta verso un backend dedicato.
+- il dato e aggiornato al timestamp dell'ultimo job riuscito
+- le scritture hosted sono admin-only e richiedono il token configurato su Netlify
+- per un multiutente realtime completo serve ancora auth utente vera davanti alle scritture cloud

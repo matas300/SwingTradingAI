@@ -182,6 +182,7 @@ def build_feature_history(
 ) -> list[FeatureSnapshot]:
     aligned_benchmark = benchmark.reindex(price_frame.index).ffill()
     history: list[FeatureSnapshot] = []
+    previous_close: float | None = None
 
     for idx, row in price_frame.iterrows():
         if any(pd.isna(row[column]) for column in ("atr", "adx", "rsi", "ema9", "ema21", "sma50")):
@@ -203,6 +204,7 @@ def build_feature_history(
             breakout = "bearish"
 
         trend = detect_trend(close, float(row["sma50"]), float(row["ema9"]), float(row["ema21"]))
+        gap_pct = ((float(row["Open"]) - previous_close) / previous_close) if previous_close else 0.0
         history.append(
             FeatureSnapshot(
                 ticker=ticker,
@@ -234,6 +236,8 @@ def build_feature_history(
                 breakout=breakout,
                 trend=trend,
                 market_regime=market_context.risk_mode,
+                gap_pct=gap_pct,
             )
         )
+        previous_close = close
     return history

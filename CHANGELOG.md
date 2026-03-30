@@ -5,107 +5,74 @@
 - File toccati:
   nessuno, audit read-only
 - Decisioni prese:
-  individuati monolite backend, monolite frontend e persistence duplicata
+  identificati monolite backend, frontend statico semplice e persistence da consolidare
 - Problemi risolti:
-  chiarita la causa del coupling tra scan live, storage e UI
+  chiarita la necessita di separare study layer e position layer
 - Problemi rimasti:
-  logica live, backtest e backup file ancora divergenti
+  alcune parti del vecchio stack locale restano come compat layer
 
-## Phase 2. Scelta architettura
+## Phase 2. Refactor architetturale
 
 - File toccati:
-  [ARCHITECTURE.md](ARCHITECTURE.md), [DEPLOY_FREE_TIER.md](DEPLOY_FREE_TIER.md)
+  `ARCHITECTURE.md`, `DEPLOY_FREE_TIER.md`, `README.md`
 - Decisioni prese:
-  scelta `Netlify + Firebase + GitHub Actions`, con frontend snapshot-first e FastAPI locale/admin
+  scelta finale su `Netlify + Firebase + GitHub Actions`
 - Problemi risolti:
-  evitata la dipendenza da compute always-on e da riscrittura Cloudflare-oriented del motore Python
+  evitata una riscrittura verso Cloudflare Workers/D1 non adatta al motore Python
 - Problemi rimasti:
-  Firestore e ancora opzionale, non frontend-facing
+  Firestore e sincronizzato dal job e non ancora un backend realtime multiutente completo
 
-## Phase 3. Refactor struttura progetto
+## Phase 3. Domain model
 
 - File toccati:
-  `swing_trading/__init__.py`, `swing_trading/constants.py`, `swing_trading/models.py`, `app.py`, `swing_trading_ai_improved.py`
+  `swing_trading/models.py`, `swing_trading/position_lifecycle.py`, `swing_trading/position_policy.py`, `swing_trading/target_engine.py`
 - Decisioni prese:
-  wrapper legacy mantenuti, nuovo package Python separato
+  posizioni gestite come eventi e target separati in originari/adattivi
 - Problemi risolti:
-  `app.py` non contiene piu tutta la logica di dominio
+  ricostruzione di media di carico, realized/unrealized PnL e recommendation giornaliera
 - Problemi rimasti:
-  i vecchi file di backup non sono ancora rimossi
+  la UI deve ancora mostrare tutti i campi avanzati in modo completo
 
-## Phase 4. DB + persistenza
-
-- File toccati:
-  `swing_trading/storage.py`, `.env.example`, `config/watchlist.json`
-- Decisioni prese:
-  SQLite come source of truth locale del job, JSON statico come export, JSONL/CSV non piu sulla serving path
-- Problemi risolti:
-  schema normalizzato per users, watchlist, snapshots, features, predictions, targets, signal history, profiles, backtest runs, ui preferences
-- Problemi rimasti:
-  non esiste ancora una migration automatica dai vecchi artifact storici
-
-## Phase 5. Scheduler giornaliero
-
-- File toccati:
-  `swing_trading/jobs/daily_refresh.py`, `.github/workflows/daily-refresh.yml`
-- Decisioni prese:
-  refresh schedulato via GitHub Actions, non via page load
-- Problemi risolti:
-  il deploy statico non innesca piu scansioni live a ogni visita
-- Problemi rimasti:
-  l'orario schedulato e fisso UTC; in futuro si puo rifinire per mercati diversi
-
-## Phase 6. Adaptive ticker profile
-
-- File toccati:
-  `swing_trading/calibration.py`, `swing_trading/storage.py`
-- Decisioni prese:
-  profilo per ticker basato su win rate, target error, MAE/MFE, holding days, regime dominante
-- Problemi risolti:
-  introdotta una base vera per tarare confidence e target per ticker
-- Problemi rimasti:
-  shrinkage statistico avanzato non ancora implementato
-
-## Phase 7. Target long/short calibration
+## Phase 4. Signal e calibration
 
 - File toccati:
   `swing_trading/signal_engine.py`, `MODEL_CALIBRATION.md`
 - Decisioni prese:
-  target baseline da ATR + struttura, poi correzione con `target_shrink_factor`
+  target derivati da struttura + ATR + correzione ticker-based
 - Problemi risolti:
-  livelli signed-safe, output strutturato, confidence piu simmetrica, warning flags esplicite
+  segnali non piu cosmetici
 - Problemi rimasti:
-  alcune configurazioni restano conservative e possono produrre RR basso su ticker compressi
+  la calibrazione resta euristica
 
-## Phase 8. UI redesign
+## Phase 5. Persistence e scheduler
 
 - File toccati:
-  `index.html`, `static/index.html`, `static/styles.css`, `static/app.js`, `static/js/*`, `UI_UX_NOTES.md`
+  `swing_trading/storage.py`, `swing_trading/service.py`, `swing_trading/jobs/daily_refresh.py`
 - Decisioni prese:
-  SPA vanilla JS a viste separate, router hash-based, snapshot-first data loading
+  SQLite come base locale e export statico per Netlify
 - Problemi risolti:
-  niente homepage monolitica, ticker detail separato, segnali/tabella/history/settings distinti
+  bundle giornaliero e snapshot persistenti
 - Problemi rimasti:
-  il deploy statico resta read-only per watchlist globale e scheduler
+  la sync Firestore richiede configurazione credential completa
 
-## Phase 9. QA finale
+## Phase 6. UI notes
 
 - File toccati:
-  `tests/test_signal_engine.py`, `tests/test_calibration.py`
+  `UI_UX_NOTES.md`
 - Decisioni prese:
-  copertura minima sulle funzioni critiche di generazione segnale e calibrazione
+  viste separate, no homepage monolitica
 - Problemi risolti:
-  esistono ora test deterministici sui punti piu fragili
+  IA definita per study watchlist, open positions e position detail
 - Problemi rimasti:
-  manca ancora una smoke test frontend piu robusta per la SPA modulare
+  alcuni dettagli di rendering finale sono ancora in assestamento
 
-## Phase 10. Documentazione
+## Phase 7. Documentation completion
 
 - File toccati:
-  `README.md`, `ARCHITECTURE.md`, `DEPLOY_FREE_TIER.md`, `MODEL_CALIBRATION.md`, `UI_UX_NOTES.md`, `CHANGELOG.md`
+  `SIGNAL_ENGINE.md`, `POSITION_LIFECYCLE.md`
 - Decisioni prese:
-  documentazione orientata sia a uso locale sia a deploy gratuito
+  documentare chiaramente event sourcing, recommendation e target duali
 - Problemi risolti:
-  flusso di avvio, deploy, limiti free tier e modello di calibrazione ora sono espliciti
+  i concetti critici ora hanno una guida autonoma
 - Problemi rimasti:
-  una guida di migrazione dai vecchi `history/scan_history.*` al nuovo schema non e ancora stata scritta
+  la migrazione storica dei vecchi artifact non e ancora documentata in modo esaustivo

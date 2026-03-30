@@ -112,9 +112,8 @@ def grade_from_confidence(value: float) -> str:
 
 
 def build_console_summary_frame(setups: list[LegacyTradeSetup]) -> pd.DataFrame:
-    rows = []
-    for setup in setups:
-        rows.append(
+    return pd.DataFrame(
+        [
             {
                 "Ticker": setup.ticker,
                 "Signal": setup.signal,
@@ -126,8 +125,9 @@ def build_console_summary_frame(setups: list[LegacyTradeSetup]) -> pd.DataFrame:
                 "ADX": round(setup.daily.adx, 2),
                 "RR": round(setup.rr_ratio, 2) if setup.rr_ratio is not None else "-",
             }
-        )
-    return pd.DataFrame(rows)
+            for setup in setups
+        ]
+    )
 
 
 def _load_watchlist_from_config(path: str | Path = "config/watchlist.json") -> list[str]:
@@ -139,19 +139,13 @@ def _load_watchlist_from_config(path: str | Path = "config/watchlist.json") -> l
     return [str(item).strip().upper() for item in tickers if str(item).strip()]
 
 
-def analyze_ticker(
-    *,
-    ticker: str,
-    config: ScannerConfig,
-    market_context: MarketContext,
-    benchmark: pd.DataFrame,
-) -> TickerPipelineResult:
+def analyze_ticker(*, ticker: str, config: ScannerConfig, market_context: MarketContext, benchmark: pd.DataFrame) -> TickerPipelineResult:
     frame = add_indicators(download_prices(ticker, period=config.daily_period, interval=config.daily_interval))
     feature_history = build_feature_history(ticker, frame, benchmark, market_context)
     if len(feature_history) < max(config.profile_lookback, 20):
         raise RuntimeError(f"{ticker}: insufficient confirmed history")
 
-    history_slice = feature_history[-config.history_window :]
+    history_slice = feature_history[-config.history_window:]
     bootstrap_history: list[SignalOutcome] = []
     bootstrap_predictions: list[PredictionRecord] = []
     bootstrap_targets: dict[str, list[TargetLevel]] = {}
@@ -160,20 +154,19 @@ def analyze_ticker(
 
     for index in range(start_index, len(history_slice) - 1):
         snapshot = history_slice[index]
-        prediction, targets = generate_prediction(snapshot, base_profile, profile_version="bootstrap-v1")
+        prediction, targets = generate_prediction(snapshot, base_profile, profile_version="bootstrap-v2")
         future_window = history_slice[index + 1 : index + 1 + config.signal_horizon_days]
         outcome = evaluate_prediction(prediction, targets, future_window)
         bootstrap_predictions.append(prediction)
-        bootstrap_targets[prediction.prediction_id] = targets
+        bootstrap_targets[prediction.signal_id] = targets
         bootstrap_history.append(outcome)
 
     profile = build_profile_from_history(ticker, history_slice[-1], bootstrap_history)
     latest_snapshot = history_slice[-1]
-    latest_prediction, latest_targets = generate_prediction(latest_snapshot, profile, profile_version="adaptive-v1")
+    latest_prediction, latest_targets = generate_prediction(latest_snapshot, profile, profile_version="adaptive-v2")
     historical_predictions = bootstrap_predictions + [latest_prediction]
     historical_targets = dict(bootstrap_targets)
-    historical_targets[latest_prediction.prediction_id] = latest_targets
-
+    historical_targets[latest_prediction.signal_id] = latest_targets
     pending_outcome = SignalOutcome(
         prediction_id=latest_prediction.prediction_id,
         ticker=latest_prediction.ticker,
@@ -189,8 +182,12 @@ def analyze_ticker(
         realized_return_pct=0.0,
         holding_days=0,
         target_error=0.0,
+        prediction_confidence=latest_prediction.confidence_score,
+        setup_name=latest_prediction.setup_name,
+        signal_history_id=f"signal-history:{latest_prediction.signal_id}",
+        signal_version_id=latest_prediction.prediction_id,
+        signal_id=latest_prediction.signal_id,
     )
-
     next_earnings_date = get_next_earnings_date(ticker)
     earnings_warning = None
     if next_earnings_date:
@@ -221,21 +218,21 @@ def run_pipeline(
     export_path: str | Path | None = None,
     user_id: str = DEFAULT_USER_ID,
 ) -> dict[str, object]:
-    selected_tickers = sorted(
-        dict.fromkeys([ticker.strip().upper() for ticker in (tickers or _load_watchlist_from_config()) if ticker.strip()])
-    )
-    config = ScannerConfig(tickers=tuple(selected_tickers), daily_period=daily_period)
     store = SQLiteStore(database_path or os.getenv("DATABASE_PATH", DEFAULT_DB_PATH))
     store.ensure_schema()
-    store.seed_defaults(user_id=user_id, tickers=tuple(selected_tickers))
-    store.replace_watchlist(selected_tickers, user_id=user_id)
+    store.seed_defaults(user_id=user_id, tickers=tuple(DEFAULT_TICKERS))
 
+    requested = [ticker.strip().upper() for ticker in (tickers or _load_watchlist_from_config()) if ticker.strip()]
+    if tickers is not None:
+        store.replace_watchlist(requested, user_id=user_id)
+    tracked = sorted(dict.fromkeys(requested + store.list_open_position_tickers(user_id=user_id)))
+    config = ScannerConfig(tickers=tuple(tracked), daily_period=daily_period)
     market_context, benchmark = build_market_context(period=daily_period)
     generated_at = datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
     results: list[TickerPipelineResult] = []
     failures: list[str] = []
 
-    for ticker in selected_tickers:
+    for ticker in tracked:
         try:
             results.append(analyze_ticker(ticker=ticker, config=config, market_context=market_context, benchmark=benchmark))
         except Exception as exc:
@@ -244,11 +241,11 @@ def run_pipeline(
     run_id = str(uuid4())
     store.save_pipeline_run(
         run_id=run_id,
-        tickers=selected_tickers,
+        tickers=tracked,
         results=results,
         generated_at=generated_at,
         config_payload={
-            "tickers": selected_tickers,
+            "tickers": tracked,
             "daily_period": daily_period,
             "history_window": config.history_window,
             "profile_lookback": config.profile_lookback,
@@ -256,13 +253,13 @@ def run_pipeline(
         },
         market_context=market_context.as_dict(),
     )
-
+    store.refresh_open_positions(results_by_ticker={item.ticker: item for item in results}, generated_at=generated_at, user_id=user_id)
     bundle = store.build_dashboard_bundle(user_id=user_id)
     export_dashboard_bundle(bundle, export_path or os.getenv("STATIC_EXPORT_PATH", DEFAULT_STATIC_EXPORT_PATH))
     return {
         "run_id": run_id,
         "generated_at": generated_at,
-        "tickers": selected_tickers,
+        "tickers": tracked,
         "saved_tickers": len(results),
         "failures": failures,
         "bundle": bundle,
@@ -279,17 +276,15 @@ def run_scan_legacy(config: ScannerConfig) -> tuple[MarketContext, NeutralNews, 
     market_context, benchmark = build_market_context(period=config.daily_period)
     setups: list[LegacyTradeSetup] = []
     failures: list[str] = []
-
     for ticker in config.tickers:
         try:
             result = analyze_ticker(ticker=ticker, config=config, market_context=market_context, benchmark=benchmark)
             prediction = result.latest_prediction
             target_1 = next((target for target in result.latest_targets if target.kind == "target_1"), None)
-            reference_entry = prediction.entry_high if prediction.direction == "long" else prediction.entry_low
+            reference_entry = prediction.entry_reference_price
             risk = abs(result.snapshots[-1].close - prediction.stop_loss) if prediction.stop_loss is not None else None
             reward = abs(target_1.price - result.snapshots[-1].close) if target_1 is not None else None
             feature = result.snapshots[-1]
-            earnings_context = EarningsContext(result.next_earnings_date)
             daily = DailySummary(feature)
             daily.score = sum(int(abs(item.get("contribution", 0)) >= 0.5) for item in prediction.top_factors)
             signal = prediction.direction.upper() if prediction.direction != "neutral" else "NO TRADE"
@@ -317,25 +312,15 @@ def run_scan_legacy(config: ScannerConfig) -> tuple[MarketContext, NeutralNews, 
                     market=market_context,
                     macro_news=NeutralNews("MARKET"),
                     company_news=NeutralNews(ticker),
-                    earnings=earnings_context,
+                    earnings=EarningsContext(result.next_earnings_date),
                     technical_reasons=[str(factor["detail"]) for factor in prediction.top_factors],
                     technical_warnings=warning_list,
                     reasons=[str(prediction.rationale["summary"]), str(prediction.rationale["target_reason"])],
                     warnings=warning_list,
                     commentary=str(prediction.rationale["summary"]),
-                    price_chart=[
-                        {
-                            "date": snapshot.session_date.isoformat(),
-                            "close": snapshot.close,
-                            "sma50": snapshot.sma50,
-                            "sma200": snapshot.sma200,
-                        }
-                        for snapshot in result.snapshots[-config.chart_points :]
-                    ],
+                    price_chart=[{"date": snapshot.session_date.isoformat(), "close": snapshot.close, "sma50": snapshot.sma50, "sma200": snapshot.sma200} for snapshot in result.snapshots[-config.chart_points:]],
                 )
             )
         except Exception as exc:
             failures.append(f"{ticker}: {exc}")
-
-    summary = build_console_summary_frame(setups)
-    return market_context, NeutralNews("MARKET"), setups, failures, summary
+    return market_context, NeutralNews("MARKET"), setups, failures, build_console_summary_frame(setups)

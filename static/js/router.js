@@ -1,13 +1,14 @@
 export function parseRoute(hash) {
   const cleaned = String(hash || "#overview").replace(/^#/, "");
-  const [view = "overview", ticker = ""] = cleaned.split("/");
+  const [view = "overview", item = ""] = cleaned.split("/");
   return {
     view: view || "overview",
-    ticker: ticker ? decodeURIComponent(ticker).toUpperCase() : null,
+    item: item ? decodeURIComponent(item) : null,
   };
 }
 
-export function navigate(view, ticker = "") {
-  const suffix = ticker ? `/${encodeURIComponent(ticker)}` : "";
+export function navigate(view, item = "") {
+  const suffix = item ? `/${encodeURIComponent(item)}` : "";
   window.location.hash = `#${view}${suffix}`;
 }
+

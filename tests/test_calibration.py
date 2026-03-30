@@ -66,3 +66,45 @@ def test_profile_shrinks_targets_when_history_overestimates():
     assert profile.insufficient_data is False
     assert profile.target_shrink_factor < 1.0
     assert profile.reliability_score < 0.75
+
+
+def test_profile_reflects_consistent_wins_and_positive_gap_bias():
+    feature = make_feature()
+    feature = FeatureSnapshot(
+        **{
+            **feature.__dict__,
+            "gap_pct": 0.04,
+        }
+    )
+    history = [
+        SignalOutcome(
+            prediction_id=f"AAPL:win-{index}",
+            ticker="AAPL",
+            session_date=date(2026, 1, 1) + timedelta(days=index),
+            direction="long",
+            regime="RISK_ON",
+            outcome_status="target_1",
+            target_1_hit=True,
+            target_2_hit=False,
+            stop_hit=False,
+            max_adverse_excursion=0.01,
+            max_favorable_excursion=0.08,
+            realized_return_pct=0.03,
+            holding_days=5,
+            target_error=-0.08,
+        )
+        for index in range(12)
+    ]
+
+    profile = build_profile_from_history("AAPL", feature, history)
+
+    assert profile.insufficient_data is False
+    assert profile.long_win_rate == 1.0
+    assert profile.short_win_rate == 0.5
+    assert profile.setup_specific_win_rate == 1.0
+    assert profile.target_shrink_factor > 1.0
+    assert profile.average_time_to_target == 5
+    assert profile.target_overshoot_rate == 1.0
+    assert profile.target_undershoot_rate == 0.0
+    assert profile.gap_behavior == 1.5
+    assert profile.regime_distribution == {"RISK_ON": 1.0}

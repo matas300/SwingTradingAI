@@ -17,3 +17,5 @@ external_binary.js
 desktop-*.png
 mobile-*.png
 backtest_*.csv
+node_modules/
+.netlify/

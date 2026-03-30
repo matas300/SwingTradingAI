@@ -2,132 +2,80 @@
 
 ## Obiettivo
 
-Evitare target fissi e confidence cosmetica. Ogni ticker accumula outcome storici e produce un `ticker_profile` che influenza:
-
-- soglia minima di confidence
-- aggressivita dei target
-- shrink/expand dei target
-- affidabilita del setup
+Evitare target cosmetici e confidence fissa. Ogni ticker costruisce un profilo adattivo che influenza segnali, target e raccomandazioni sulle posizioni.
 
 ## Pipeline
 
-Per ogni ticker monitorato il job giornaliero:
+Per ogni ticker il refresh giornaliero:
 
 1. scarica OHLCV daily confermati
-2. calcola feature e snapshot
-3. genera predizioni storiche bootstrap sulle ultime sessioni
-4. confronta le predizioni con gli outcome successivi
-5. costruisce `signal_history`
-6. aggrega `ticker_profile`
-7. genera la predizione piu recente usando il profilo adattivo
+2. costruisce le feature tecniche
+3. genera segnali e target
+4. confronta i segnali storici con gli outcome osservati
+5. aggiorna `ticker_profiles`
+6. ricalibra confidence e target
 
-## Feature principali
+## Metriche profilo
 
-- `atr`
-- `adx`
-- `rsi`
-- trend via `sma50` + stack `ema9/ema21`
-- breakout/breakdown
-- `volume_ratio`
-- `volatility_20d`
-- `drawdown_63d`
-- `relative_strength_1m`
-- `relative_strength_3m`
-- distanza da supporto/resistenza in ATR
-- regime di mercato (`RISK_ON`, `MIXED`, `RISK_OFF`)
+Il `ticker_profile` include almeno:
 
-## Outcome valutati
+- volatilita rolling
+- ATR rolling
+- trend persistence
+- gap behavior
+- long win rate
+- short win rate
+- setup-specific win rate
+- average time to target
+- average time to stop
+- target overshoot rate
+- target undershoot rate
+- MFE medio
+- MAE medio
+- confidence calibration error
+- regime distribution
 
-Per ogni predizione vengono misurati:
-
-- `outcome_status`
-- `target_1_hit`
-- `target_2_hit`
-- `stop_hit`
-- `max_favorable_excursion`
-- `max_adverse_excursion`
-- `realized_return_pct`
-- `holding_days`
-- `target_error`
-
-`target_error` e definito come:
-
-- movimento previsto fino a `target_1`
-- meno il massimo movimento favorevole effettivamente osservato
-
-Quindi:
-
-- `target_error > 0`: il sistema ha sovrastimato il target
-- `target_error < 0`: il sistema e stato troppo conservativo
-
-## Costruzione del `ticker_profile`
-
-Il profilo aggrega:
-
-- `long_win_rate`
-- `short_win_rate`
-- `mean_target_error`
-- `mean_mae`
-- `mean_mfe`
-- `avg_days_to_target`
-- `avg_days_to_stop`
-- `dominant_regime`
-- `reliability_score`
-- `confidence_floor`
-- `target_shrink_factor`
-- `target_aggression`
-
-## Come influenza i segnali futuri
-
-### Confidence
-
-`confidence_score` finale = mix di:
-
-- qualita strutturale del setup
-- affidabilita storica del ticker
-
-Se il profilo e poco affidabile o con dati insufficienti:
-
-- confidence limitata
-- possibile degradazione a `neutral`
-
-### Target
+## Calibrazione target
 
 I target nascono da:
 
 - ATR
-- struttura tecnica
-- supporti/resistenze
-- regime
+- supporti / resistenze
+- swing highs / lows
+- volatilita storica
+- regime di mercato
 
-Poi vengono calibrati con:
+Poi vengono corretti con:
 
-- `target_shrink_factor`
-- `target_aggression`
-- errore storico medio del ticker
+- baseline target
+- error profile del ticker
+- de-rating se il modello sovrastima
+- aggressivita maggiore solo quando statisticamente giustificata
+- versioning temporale dei target
 
-### Warning flags
+## Calibrazione confidence
 
-Esempi:
+La confidence finale non dipende solo dal setup corrente. Viene ridotta quando:
 
-- `weak-risk-reward`
-- `low-volume`
-- `overextended`
-- `historical-overestimation`
-- `insufficient-data`
-- `counter-regime-long`
-- `counter-regime-short`
+- il ticker ha pochi dati
+- il profilo e instabile
+- il regime e sfavorevole
+- il setup storico e poco affidabile
 
-## Limiti attuali
+Viene alzata quando:
 
-- il profilo usa ancora una calibrazione euristica, non un modello statistico complesso
-- la watchlist schedulata e single-user
-- la risoluzione stop/target su OHLC daily resta conservativa
-- i dati earnings sono opzionali e best-effort
+- il setup e coerente
+- il profilo storico e robusto
+- il comportamento del ticker e stabile
 
-## Evoluzioni consigliate
+## Regole pratiche
 
-- engine/version stamping piu esplicito in tutte le tabelle
-- priors globali + shrinkage gerarchico per ticker/side/regime
-- backtest e live completamente unificati sullo stesso core
-- storage outcome piu ricco per tempo di hit e trade state machine
+- se il profilo mostra sovrastima sistematica dei target, ridurre l'aggressivita
+- se il profilo e debole, degradare la fiducia operativa
+- se il regime e contrario al setup, mantenere piu conservativo il profilo target
+
+## Limiti
+
+- la calibrazione e euristica e interpretabile
+- non e un modello statistico gerarchico completo
+- i valori giornalieri rimangono sensibili alla qualita del dato di mercato

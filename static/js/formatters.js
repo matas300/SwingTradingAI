@@ -13,10 +13,22 @@ export function formatPrice(value) {
   return number.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+export function formatNumber(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "-";
+  return number.toLocaleString("en-US", { maximumFractionDigits: 2 });
+}
+
 export function formatPct(value, digits = 1) {
   const number = Number(value);
   if (!Number.isFinite(number)) return "-";
   return `${(number * 100).toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits })}%`;
+}
+
+export function formatPnl(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "-";
+  return `${number > 0 ? "+" : ""}${number.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export function formatDate(value) {
@@ -36,6 +48,14 @@ export function formatDateTime(value) {
 export function signalTone(direction) {
   if (direction === "long") return "green";
   if (direction === "short") return "red";
+  return "slate";
+}
+
+export function actionTone(action) {
+  if (action === "add") return "green";
+  if (action === "reduce") return "amber";
+  if (action === "close") return "red";
+  if (action === "maintain") return "slate";
   return "slate";
 }
 
@@ -67,3 +87,10 @@ export function compactList(values, limit = 3) {
   const extra = values.length - visible.length;
   return extra > 0 ? `${visible.join(", ")} +${extra}` : visible.join(", ");
 }
+
+export function humanizeKey(value) {
+  return String(value || "")
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
