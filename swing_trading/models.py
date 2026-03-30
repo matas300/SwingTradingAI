@@ -261,6 +261,8 @@ class PredictionRecord:
         payload = dataclass_to_dict(self)
         if not payload.get('signal_id'):
             payload['signal_id'] = self.signal_id or self.prediction_id
+        payload['strategy_name'] = self.strategy_name
+        payload['entry_reference_price'] = self.entry_reference_price
         return payload
 
 
