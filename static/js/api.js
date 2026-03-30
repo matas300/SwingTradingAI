@@ -1,5 +1,15 @@
 const DASHBOARD_ENDPOINTS = ["/api/dashboard", "/static/data/app-state.json", "/data/app-state.json"];
 
+function hasDashboardContent(data) {
+  if (!data || typeof data !== "object") return false;
+  const study = Array.isArray(data.study_watchlist) ? data.study_watchlist.length : 0;
+  const signals = Array.isArray(data.signals) ? data.signals.length : 0;
+  const openPositions = Array.isArray(data.open_positions) ? data.open_positions.length : 0;
+  const tickerCount = data.tickers && typeof data.tickers === "object" ? Object.keys(data.tickers).length : 0;
+  const positionCount = data.positions && typeof data.positions === "object" ? Object.keys(data.positions).length : 0;
+  return study > 0 || signals > 0 || openPositions > 0 || tickerCount > 0 || positionCount > 0;
+}
+
 function requestHeaders() {
   const headers = { "Content-Type": "application/json" };
   try {
@@ -29,9 +39,13 @@ async function requestJson(url, options = {}) {
 }
 
 export async function loadDashboard() {
-  for (const endpoint of DASHBOARD_ENDPOINTS) {
+  for (const [index, endpoint] of DASHBOARD_ENDPOINTS.entries()) {
     try {
       const data = await requestJson(endpoint);
+      const isLastEndpoint = index === DASHBOARD_ENDPOINTS.length - 1;
+      if (!hasDashboardContent(data) && !isLastEndpoint) {
+        continue;
+      }
       return {
         source: endpoint.startsWith("/api/") ? "api" : "static",
         data,

@@ -1,3 +1,5 @@
+const fs = require("fs");
+const pathLib = require("path");
 const crypto = require("crypto");
 
 const { firestore } = require("./_shared/firebase");
@@ -22,6 +24,8 @@ const {
   updateDashboardWatchlist,
 } = require("./_shared/trading");
 
+const STATIC_SNAPSHOT_PATH = pathLib.resolve(__dirname, "../../static/data/app-state.json");
+
 function makeId(prefix) {
   return `${prefix}:${crypto.randomBytes(6).toString("hex")}`;
 }
@@ -29,6 +33,26 @@ function makeId(prefix) {
 async function docById(db, collection, id) {
   const snapshot = await db.collection(collection).doc(id).get();
   return snapshot.exists ? snapshot.data() : null;
+}
+
+function hasDashboardContent(bundle) {
+  if (!bundle || typeof bundle !== "object") return false;
+  const study = Array.isArray(bundle.study_watchlist) ? bundle.study_watchlist.length : 0;
+  const signals = Array.isArray(bundle.signals) ? bundle.signals.length : 0;
+  const openPositions = Array.isArray(bundle.open_positions) ? bundle.open_positions.length : 0;
+  const tickerCount = bundle.tickers && typeof bundle.tickers === "object" ? Object.keys(bundle.tickers).length : 0;
+  const positionCount = bundle.positions && typeof bundle.positions === "object" ? Object.keys(bundle.positions).length : 0;
+  return study > 0 || signals > 0 || openPositions > 0 || tickerCount > 0 || positionCount > 0;
+}
+
+function readStaticSnapshot() {
+  try {
+    const payload = fs.readFileSync(STATIC_SNAPSHOT_PATH, "utf8");
+    const parsed = JSON.parse(payload);
+    return hasDashboardContent(parsed) ? parsed : null;
+  } catch (_error) {
+    return null;
+  }
 }
 
 async function setDoc(db, collection, id, payload) {
@@ -47,7 +71,14 @@ async function listByField(db, collection, field, value) {
 
 async function dashboardBundle(db) {
   const dashboard = await docById(db, "_app", "dashboard");
-  return dashboard || {
+  if (hasDashboardContent(dashboard)) {
+    return dashboard;
+  }
+  const staticSnapshot = readStaticSnapshot();
+  if (staticSnapshot) {
+    return staticSnapshot;
+  }
+  return {
     generated_at: nowIso(),
     overview: {
       tracked_tickers: 0,
