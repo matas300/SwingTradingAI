@@ -2,8 +2,6 @@ import { compactList, escapeHtml, formatDateTime, formatPct, formatPrice, humani
 
 export function renderSignals(state) {
   const rows = state.data?.signals || [];
-  const capabilities = state.data?.capabilities || {};
-  const canWrite = Boolean(capabilities.write && (capabilities.auth_mode !== "admin-token" || state.adminToken));
   return `
     <section class="panel">
       <div class="panel-head">
@@ -36,7 +34,7 @@ export function renderSignals(state) {
               <span>${escapeHtml(row.strategy_name || row.setup_name || "adaptive-swing-v2")}</span>
               <div class="table-actions">
                 <button class="ghost-button" data-action="open-ticker" data-item="${escapeHtml(row.ticker)}">Inspect</button>
-                <button class="secondary-button" data-action="open-position-modal" data-item="${escapeHtml(row.ticker)}" ${canWrite && row.direction !== "neutral" ? "" : "disabled"}>Open position</button>
+                <button class="secondary-button" data-action="open-position-modal" data-item="${escapeHtml(row.ticker)}">Open position</button>
               </div>
             </div>
             <div class="subtle-row">

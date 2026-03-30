@@ -11,8 +11,6 @@ function signalSummary(signal) {
 
 export function renderTickerDetail(state, ticker) {
   const detail = state.data?.tickers?.[ticker];
-  const capabilities = state.data?.capabilities || {};
-  const canWrite = Boolean(capabilities.write && (capabilities.auth_mode !== "admin-token" || state.adminToken));
   if (!ticker) return `<div class="empty-state">No ticker selected.</div>`;
   if (!detail) return `<div class="empty-state">Ticker ${escapeHtml(ticker)} is not cached yet. Open it from the watchlist or signals first.</div>`;
 
@@ -33,7 +31,7 @@ export function renderTickerDetail(state, ticker) {
       <div class="hero-meta">
         ${signal ? `<span class="pill tone-${signalTone(signal.direction)}">${escapeHtml(signal.direction.toUpperCase())}</span>` : ""}
         ${signal ? `<span class="pill tone-${reliabilityTone(signal.reliability_label)}">${escapeHtml(signal.reliability_label || "unrated")}</span>` : ""}
-        ${signal && signal.direction !== "neutral" ? `<button class="primary-button" data-action="open-position-modal" data-item="${escapeHtml(ticker)}" ${canWrite ? "" : "disabled"}>Open position from this signal</button>` : ""}
+        ${signal && signal.direction !== "neutral" ? `<button class="primary-button" data-action="open-position-modal" data-item="${escapeHtml(ticker)}">Open position from this signal</button>` : ""}
       </div>
     </section>
 

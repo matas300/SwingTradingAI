@@ -171,6 +171,8 @@ function renderDialog(state) {
   const { type } = state.modal;
   if (type === "open-position") {
     const signal = state.modal.signal;
+    const writable = canWrite(state);
+    const hostedAuthMode = capabilitiesFor(state).auth_mode === "admin-token";
     dialogNode.innerHTML = `
       <form id="open-position-form" class="modal-card">
         <div class="modal-head">
@@ -195,6 +197,15 @@ function renderDialog(state) {
           <textarea name="notes" rows="4" placeholder="Why am I taking this trade?"></textarea>
         </label>
         <p class="help-text">The form is prefilled from the originating signal, but you can adjust execution details before saving.</p>
+        ${
+          writable
+            ? ""
+            : `<p class="help-text">${
+                hostedAuthMode
+                  ? "Saving is still protected. Add the admin token in Settings before submitting."
+                  : "This deploy is currently read-only. You can review the setup here, but saving requires a writable API mode."
+              }</p>`
+        }
         <div class="modal-actions">
           <button class="secondary-button" type="button" data-action="close-modal">Cancel</button>
           <button class="primary-button" type="submit">Create position</button>
@@ -355,6 +366,8 @@ document.addEventListener("click", async (event) => {
     const signal = signalForTicker(getState(), item) || getTickerDetail(getState(), item)?.latest_prediction || getTickerDetail(getState(), item)?.latest_signal || null;
     if (signal && signal.direction !== "neutral") {
       openModal({ type: "open-position", signal });
+    } else {
+      setState({ notice: "Only long or short signals can be converted into a real position." });
     }
   }
   if (action === "open-add" && item) {
