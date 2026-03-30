@@ -13,6 +13,9 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -38,13 +41,27 @@ jobs:
           python -m swing_trading.jobs.daily_refresh
 
       - name: Commit generated snapshot
+        env:
+          DATABASE_PATH: history/swing_trading_ai_v2.sqlite3
+          STATIC_EXPORT_PATH: static/data/app-state.json
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
+            git rebase origin/main
+            if [ -n "$FIREBASE_SERVICE_ACCOUNT_JSON" ]; then
+              printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/firebase-service-account.json"
+              export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/firebase-service-account.json"
+            fi
+            python -m swing_trading.jobs.daily_refresh
+          fi
           git add static/data/app-state.json
           if git diff --cached --quiet; then
             echo "No snapshot changes to commit"
           else
             git commit -m "chore: refresh daily swing snapshot"
-            git push
+            git push origin HEAD:main
           fi
