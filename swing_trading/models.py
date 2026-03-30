@@ -194,6 +194,10 @@ class TargetSetRecord:
         return owner.split(':')[0] if ':' in owner else owner
 
     @property
+    def entry_reference_price(self) -> float | None:
+        return self.reference_entry_price
+
+    @property
     def average_entry_reference(self) -> float | None:
         return self.average_entry_price
 

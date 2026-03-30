@@ -5,6 +5,10 @@ on:
     - cron: "30 23 * * 1-5"
   workflow_dispatch:
 
+concurrency:
+  group: daily-refresh-main
+  cancel-in-progress: false
+
 jobs:
   refresh:
     runs-on: ubuntu-latest
@@ -63,5 +67,6 @@ jobs:
             echo "No snapshot changes to commit"
           else
             git commit -m "chore: refresh daily swing snapshot"
+            git pull --rebase origin main
             git push origin HEAD:main
           fi
