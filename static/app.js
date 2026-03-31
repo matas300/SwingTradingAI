@@ -481,20 +481,13 @@ document.addEventListener("submit", async (event) => {
       const detail = await openPositionFromSignal(payload);
       const positionId = detail?.position?.position_id || detail?.position?.id || detail?.position_id || null;
       closeModal();
-      setState({
-        notice: "Position opened from the selected signal.",
-        data: {
-          ...getState().data,
-          positions: {
-            ...(getState().data?.positions || {}),
-            ...(positionId ? { [positionId]: detail } : {}),
-          },
-        },
-      });
       if (positionId) {
         navigate("position", positionId);
-        await hydratePositionDetail({ view: "position", item: positionId });
+        await refreshAndHydrate({ view: "position", item: positionId });
+      } else {
+        await refreshAndHydrate();
       }
+      setState({ notice: "Position opened from the selected signal." });
     } catch (error) {
       setState({ notice: error instanceof Error ? error.message : "Unable to open the position." });
     }
@@ -523,18 +516,9 @@ document.addEventListener("submit", async (event) => {
     try {
       const detail = await createPositionEvent(positionId, payload);
       closeModal();
-      setState({
-        notice: "Position event saved.",
-        data: {
-          ...getState().data,
-          positions: {
-            ...(getState().data?.positions || {}),
-            [positionId]: detail,
-          },
-        },
-      });
       navigate("position", positionId);
-      await hydratePositionDetail({ view: "position", item: positionId });
+      await refreshAndHydrate({ view: "position", item: positionId });
+      setState({ notice: "Position event saved." });
     } catch (error) {
       setState({ notice: error instanceof Error ? error.message : "Unable to save the position event." });
     }
