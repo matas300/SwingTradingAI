@@ -24,7 +24,11 @@ const {
   updateDashboardWatchlist,
 } = require("./_shared/trading");
 
-const STATIC_SNAPSHOT_PATH = pathLib.resolve(__dirname, "../../static/data/app-state.json");
+const STATIC_SNAPSHOT_CANDIDATES = [
+  pathLib.resolve(process.cwd(), "static/data/app-state.json"),
+  pathLib.resolve(__dirname, "../../static/data/app-state.json"),
+  pathLib.resolve(__dirname, "../static/data/app-state.json"),
+];
 
 function makeId(prefix) {
   return `${prefix}:${crypto.randomBytes(6).toString("hex")}`;
@@ -46,13 +50,18 @@ function hasDashboardContent(bundle) {
 }
 
 function readStaticSnapshot() {
-  try {
-    const payload = fs.readFileSync(STATIC_SNAPSHOT_PATH, "utf8");
-    const parsed = JSON.parse(payload);
-    return hasDashboardContent(parsed) ? parsed : null;
-  } catch (_error) {
-    return null;
+  for (const candidate of STATIC_SNAPSHOT_CANDIDATES) {
+    try {
+      const payload = fs.readFileSync(candidate, "utf8");
+      const parsed = JSON.parse(payload);
+      if (hasDashboardContent(parsed)) {
+        return parsed;
+      }
+    } catch (_error) {
+      // Try the next likely path.
+    }
   }
+  return null;
 }
 
 async function setDoc(db, collection, id, payload) {

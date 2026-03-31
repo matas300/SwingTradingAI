@@ -39,21 +39,47 @@ async function requestJson(url, options = {}) {
 }
 
 export async function loadDashboard() {
-  for (const [index, endpoint] of DASHBOARD_ENDPOINTS.entries()) {
+  let apiFallback = null;
+
+  try {
+    const apiData = await requestJson("/api/dashboard");
+    apiFallback = apiData;
+    if (hasDashboardContent(apiData)) {
+      return {
+        source: "api",
+        data: apiData,
+      };
+    }
+  } catch (_error) {
+    // Fall back to the static snapshot.
+  }
+
+  for (const endpoint of DASHBOARD_ENDPOINTS.slice(1)) {
     try {
       const data = await requestJson(endpoint);
-      const isLastEndpoint = index === DASHBOARD_ENDPOINTS.length - 1;
-      if (!hasDashboardContent(data) && !isLastEndpoint) {
-        continue;
-      }
+      const merged = apiFallback?.capabilities
+        ? {
+            ...data,
+            capabilities: apiFallback.capabilities,
+            architecture: apiFallback.architecture || data.architecture,
+          }
+        : data;
       return {
-        source: endpoint.startsWith("/api/") ? "api" : "static",
-        data,
+        source: apiFallback?.capabilities ? "api" : "static",
+        data: merged,
       };
     } catch (_error) {
       // Try the next source.
     }
   }
+
+  if (apiFallback) {
+    return {
+      source: "api",
+      data: apiFallback,
+    };
+  }
+
   throw new Error("Unable to load dashboard data from API or static snapshot.");
 }
 

@@ -4,6 +4,7 @@ command = "echo \"Static deploy for SwingTradingAI\""
 
 [functions]
 directory = "netlify/functions"
+included_files = ["static/data/app-state.json"]
 
 [[redirects]]
 from = "/api/*"
