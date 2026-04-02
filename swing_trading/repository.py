@@ -2015,6 +2015,8 @@ class SQLiteRepository:
         }
 
     def export_table_rows(self, table_name: str) -> list[dict[str, Any]]:
+        if table_name not in SYNC_TABLES:
+            raise ValueError(f"Invalid table name: {table_name}")
         import re
         if not re.match(r"^[a-zA-Z0-9_]+$", table_name):
             raise ValueError(f"Invalid table name: {table_name}")
