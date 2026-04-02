@@ -59,13 +59,19 @@ def test_ensure_non_negative_number():
     with pytest.raises(ValueError, match="volume cannot be negative"):
         ensure_non_negative_number(-5.5, "volume")
 
+def test_ensure_non_negative_number_edge_cases():
+    assert ensure_non_negative_number(5.0, "Test Field") == 5.0
+    assert ensure_non_negative_number(0.0, "Test Field") == 0.0
+    assert ensure_non_negative_number(None, "Test Field") == 0.0
+    with pytest.raises(ValueError, match="Test Field cannot be negative."):
+        ensure_non_negative_number(-1.0, "Test Field")
+
 def test_normalize_timestamp():
     # Empty timestamp gets current UTC
     now_ts = normalize_timestamp(None)
     assert now_ts.endswith("Z")
 
     # 'Z' suffixed timestamps
-    # Depending on local timezone, astimezone() will output +HH:MM or +00:00
     ts = normalize_timestamp("2023-01-01T12:00:00Z")
     assert "2023-01-01T12:00:00" in ts
 
@@ -73,6 +79,5 @@ def test_normalize_timestamp():
     ts2 = normalize_timestamp("2023-01-01T12:00:00+00:00")
     assert "2023-01-01T12:00:00" in ts2
 
-    # Local time without timezone gets converted as if it was already local/UTC based on system,
-    # but the implementation appends Z if tzinfo is None
+    # Local time without timezone gets converted as if it was already local/UTC based on system
     assert normalize_timestamp("2023-01-01T12:00:00") == "2023-01-01T12:00:00Z"
