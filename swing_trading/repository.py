@@ -524,21 +524,22 @@ class SQLiteRepository:
                 )
             connection.commit()
 
-    def list_active_tickers(self, user_id: str = DEFAULT_USER_ID) -> list[str]:
+    def _fetch_string_list(self, query: str, parameters: tuple = ()) -> list[str]:
         with self.connect() as connection:
-            rows = connection.execute(
-                "SELECT ticker FROM watched_tickers WHERE user_id = ? AND is_active = 1 ORDER BY ticker",
-                (user_id,),
-            ).fetchall()
-        return [str(row["ticker"]) for row in rows]
+            rows = connection.execute(query, parameters).fetchall()
+        return [str(row[0]) for row in rows]
+
+    def list_active_tickers(self, user_id: str = DEFAULT_USER_ID) -> list[str]:
+        return self._fetch_string_list(
+            "SELECT ticker FROM watched_tickers WHERE user_id = ? AND is_active = 1 ORDER BY ticker",
+            (user_id,)
+        )
 
     def list_open_position_tickers(self, user_id: str = DEFAULT_USER_ID) -> list[str]:
-        with self.connect() as connection:
-            rows = connection.execute(
-                "SELECT DISTINCT ticker FROM open_positions WHERE user_id = ? AND status = 'open' ORDER BY ticker",
-                (user_id,),
-            ).fetchall()
-        return [str(row["ticker"]) for row in rows]
+        return self._fetch_string_list(
+            "SELECT DISTINCT ticker FROM open_positions WHERE user_id = ? AND status = 'open' ORDER BY ticker",
+            (user_id,)
+        )
 
     def get_ui_preferences(self, user_id: str = DEFAULT_USER_ID) -> dict[str, Any]:
         with self.connect() as connection:
