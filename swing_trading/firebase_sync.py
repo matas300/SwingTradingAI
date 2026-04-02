@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from .constants import DEFAULT_USER_ID
@@ -50,6 +51,11 @@ def sync_firestore_to_sqlite(*, database_path: str | Path, project_id: str) -> N
                 if not row:
                     continue
                 ordered_columns = list(row.keys())
+                if not re.match(r"^[a-zA-Z0-9_]+$", table):
+                    raise ValueError(f"Invalid table name: {table}")
+                for col in ordered_columns:
+                    if not re.match(r"^[a-zA-Z0-9_]+$", col):
+                        raise ValueError(f"Invalid column name: {col}")
                 placeholders = ", ".join("?" for _ in ordered_columns)
                 connection.execute(
                     f"INSERT OR REPLACE INTO {table} ({', '.join(ordered_columns)}) VALUES ({placeholders})",
