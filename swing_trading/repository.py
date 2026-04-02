@@ -2014,6 +2014,9 @@ class SQLiteRepository:
         }
 
     def export_table_rows(self, table_name: str) -> list[dict[str, Any]]:
+        import re
+        if not re.match(r"^[a-zA-Z0-9_]+$", table_name):
+            raise ValueError(f"Invalid table name: {table_name}")
         with self.connect() as connection:
             rows = connection.execute(f"SELECT * FROM {table_name}").fetchall()
         payloads = [dict(row) for row in rows]
