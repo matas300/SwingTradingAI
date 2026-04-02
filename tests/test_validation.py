@@ -103,4 +103,4 @@ def test_normalize_timestamp_z_suffix():
 
 def test_normalize_timestamp_timezone_aware():
     res = normalize_timestamp("2024-01-01T12:00:00-05:00")
-    assert "+00:00" in res or "-" in res[10:]
+    assert "+00:00" in res or "-" in res[10:] or res.endswith("Z")

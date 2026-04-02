@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 
 TICKER_RE = re.compile(r"^[A-Z0-9][A-Z0-9.\-]{0,11}$")
 
@@ -40,11 +40,11 @@ def ensure_non_negative_number(value: float | None, field_name: str) -> float:
 
 def normalize_timestamp(value: str | None) -> str:
     if not value:
-        return datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+        return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
     cleaned = value.strip()
     if cleaned.endswith("Z"):
         cleaned = cleaned[:-1] + "+00:00"
     parsed = datetime.fromisoformat(cleaned)
     if parsed.tzinfo is None:
         return parsed.replace(microsecond=0).isoformat() + "Z"
-    return parsed.astimezone().replace(microsecond=0).isoformat()
+    return parsed.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
