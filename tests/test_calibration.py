@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from swing_trading.calibration import build_profile_from_history
+from swing_trading.calibration import build_profile_from_history, clamp
 from swing_trading.models import FeatureSnapshot, SignalOutcome
 
 
@@ -108,3 +108,31 @@ def test_profile_reflects_consistent_wins_and_positive_gap_bias():
     assert profile.target_undershoot_rate == 0.0
     assert profile.gap_behavior == 1.5
     assert profile.regime_distribution == {"RISK_ON": 1.0}
+
+
+def test_clamp_within_bounds():
+    assert clamp(5.0, 1.0, 10.0) == 5.0
+    assert clamp(0.0, -1.0, 1.0) == 0.0
+
+
+def test_clamp_below_lower_bound():
+    assert clamp(0.5, 1.0, 10.0) == 1.0
+    assert clamp(-5.0, -2.0, 2.0) == -2.0
+
+
+def test_clamp_above_upper_bound():
+    assert clamp(15.0, 1.0, 10.0) == 10.0
+    assert clamp(5.0, -2.0, 2.0) == 2.0
+
+
+def test_clamp_equal_to_bounds():
+    assert clamp(1.0, 1.0, 10.0) == 1.0
+    assert clamp(10.0, 1.0, 10.0) == 10.0
+    assert clamp(-2.0, -2.0, 2.0) == -2.0
+    assert clamp(2.0, -2.0, 2.0) == 2.0
+
+
+def test_clamp_with_negative_values():
+    assert clamp(-5.0, -10.0, -1.0) == -5.0
+    assert clamp(-15.0, -10.0, -1.0) == -10.0
+    assert clamp(-0.5, -10.0, -1.0) == -1.0
