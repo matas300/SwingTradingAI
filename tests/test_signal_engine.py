@@ -1,7 +1,7 @@
 from datetime import date
 
 from swing_trading.models import FeatureSnapshot, ProfileSnapshot
-from swing_trading.signal_engine import generate_prediction
+from swing_trading.signal_engine import generate_prediction, make_factor
 
 
 def make_feature(**overrides):
@@ -108,3 +108,21 @@ def test_short_signal_produces_signed_levels():
     assert prediction.stop_loss is not None and prediction.stop_loss > feature.close
     assert target_1.price < feature.close
     assert prediction.risk_reward is not None and prediction.risk_reward > 0
+
+
+def test_make_factor():
+    # Test standard case
+    factor = make_factor("Trend", 1.23, "Primary trend is up.")
+    assert factor == {"name": "Trend", "contribution": 1.23, "detail": "Primary trend is up."}
+
+    # Test negative contribution
+    factor_neg = make_factor("RSI", -0.12, "Oversold")
+    assert factor_neg == {"name": "RSI", "contribution": -0.12, "detail": "Oversold"}
+
+    # Test exact integer
+    factor_int = make_factor("Volume", 2.0, "High volume")
+    assert factor_int == {"name": "Volume", "contribution": 2.0, "detail": "High volume"}
+
+    # Test empty strings
+    factor_empty = make_factor("", 0.0, "")
+    assert factor_empty == {"name": "", "contribution": 0.0, "detail": ""}

@@ -12,12 +12,12 @@ def clamp(value: float, lower: float, upper: float) -> float:
 
 def reliability_label(score: float, insufficient_data: bool) -> str:
     if insufficient_data:
-        return 'Insufficient data'
-    if score >= 0.78:
-        return 'High reliability'
-    if score >= 0.62:
-        return 'Medium reliability'
-    return 'Low reliability'
+        return "Insufficient data"
+    if score >= 0.75:
+        return "High reliability"
+    if score >= 0.50:
+        return "Moderate reliability"
+    return "Low reliability"
 
 
 def default_profile(ticker: str, latest_feature: FeatureSnapshot | None = None) -> ProfileSnapshot:
