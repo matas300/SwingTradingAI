@@ -524,21 +524,22 @@ class SQLiteRepository:
                 )
             connection.commit()
 
-    def list_active_tickers(self, user_id: str = DEFAULT_USER_ID) -> list[str]:
+    def _fetch_string_list(self, query: str, parameters: tuple = ()) -> list[str]:
         with self.connect() as connection:
-            rows = connection.execute(
-                "SELECT ticker FROM watched_tickers WHERE user_id = ? AND is_active = 1 ORDER BY ticker",
-                (user_id,),
-            ).fetchall()
-        return [str(row["ticker"]) for row in rows]
+            rows = connection.execute(query, parameters).fetchall()
+        return [str(row[0]) for row in rows]
+
+    def list_active_tickers(self, user_id: str = DEFAULT_USER_ID) -> list[str]:
+        return self._fetch_string_list(
+            "SELECT ticker FROM watched_tickers WHERE user_id = ? AND is_active = 1 ORDER BY ticker",
+            (user_id,)
+        )
 
     def list_open_position_tickers(self, user_id: str = DEFAULT_USER_ID) -> list[str]:
-        with self.connect() as connection:
-            rows = connection.execute(
-                "SELECT DISTINCT ticker FROM open_positions WHERE user_id = ? AND status = 'open' ORDER BY ticker",
-                (user_id,),
-            ).fetchall()
-        return [str(row["ticker"]) for row in rows]
+        return self._fetch_string_list(
+            "SELECT DISTINCT ticker FROM open_positions WHERE user_id = ? AND status = 'open' ORDER BY ticker",
+            (user_id,)
+        )
 
     def get_ui_preferences(self, user_id: str = DEFAULT_USER_ID) -> dict[str, Any]:
         with self.connect() as connection:
@@ -2014,6 +2015,11 @@ class SQLiteRepository:
         }
 
     def export_table_rows(self, table_name: str) -> list[dict[str, Any]]:
+        if table_name not in SYNC_TABLES:
+            raise ValueError(f"Invalid table name: {table_name}")
+        import re
+        if not re.match(r"^[a-zA-Z0-9_]+$", table_name):
+            raise ValueError(f"Invalid table name: {table_name}")
         with self.connect() as connection:
             rows = connection.execute(f"SELECT * FROM {table_name}").fetchall()
         payloads = [dict(row) for row in rows]

@@ -1,6 +1,7 @@
 from datetime import date, timedelta
+import pytest
 
-from swing_trading.calibration import build_profile_from_history, clamp
+from swing_trading.calibration import build_profile_from_history, reliability_label, clamp
 from swing_trading.models import FeatureSnapshot, SignalOutcome
 
 
@@ -136,3 +137,19 @@ def test_clamp_with_negative_values():
     assert clamp(-5.0, -10.0, -1.0) == -5.0
     assert clamp(-15.0, -10.0, -1.0) == -10.0
     assert clamp(-0.5, -10.0, -1.0) == -1.0
+
+@pytest.mark.parametrize(
+    "score, insufficient_data, expected",
+    [
+        (0.8, True, "Insufficient data"),
+        (0.5, True, "Insufficient data"),
+        (0.8, False, "High reliability"),
+        (0.75, False, "High reliability"),
+        (0.74, False, "Moderate reliability"),
+        (0.50, False, "Moderate reliability"),
+        (0.49, False, "Low reliability"),
+        (0.1, False, "Low reliability"),
+    ],
+)
+def test_reliability_label(score: float, insufficient_data: bool, expected: str):
+    assert reliability_label(score, insufficient_data) == expected
