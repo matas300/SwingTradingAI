@@ -49,11 +49,11 @@ export function renderPositions(state) {
       <div class="toolbar">
         <label class="search-field">
           <span>Search</span>
-          <input id="positions-query" type="search" placeholder="ticker, strategy, action" value="${escapeHtml(state.filters.query)}">
+          <input id="positions-query" type="search" aria-label="Filter positions" placeholder="ticker, strategy, action" value="${escapeHtml(state.filters.query)}">
         </label>
         <label class="search-field">
           <span>Side</span>
-          <select id="positions-side">
+          <select id="positions-side" aria-label="Filter by side">
             <option value="all" ${side === "all" ? "selected" : ""}>All</option>
             <option value="long" ${side === "long" ? "selected" : ""}>Long</option>
             <option value="short" ${side === "short" ? "selected" : ""}>Short</option>
