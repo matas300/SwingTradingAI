@@ -1,0 +1,3 @@
+## 2024-04-15 - Explicit Focus Visible Styles
+**Learning:** This app's components lose default keyboard focus outlines due to base CSS resets or specific background stylings, making keyboard navigation difficult to track.
+**Action:** Always explicitly define `:focus-visible` styles on interactive elements (`a`, `button`, `input`, `select`, `textarea`) using the existing design tokens (e.g., `var(--accent)`) to ensure a consistent and visible focus indicator.
