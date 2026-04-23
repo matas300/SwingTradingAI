@@ -1,0 +1,3 @@
+## 2024-04-23 - Focus Visible Styles for Keyboard Navigation
+**Learning:** In custom-themed applications, the base CSS configuration or framework resets may strip default focus outlines, hindering keyboard accessibility. It's crucial to explicitly define `:focus-visible` styles for interactive elements, mapping them to existing design system tokens (like `var(--accent)`) to maintain visual consistency while ensuring a11y compliance.
+**Action:** When working on UI enhancements, proactively check for explicit focus states on interactive elements (`a`, `button`, `input`, `select`, `textarea`) and add `:focus-visible` styles if missing.
