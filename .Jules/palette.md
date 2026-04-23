@@ -1,0 +1,3 @@
+## 2024-04-06 - Missing aria-current and input aria-labels
+**Learning:** Single Page Application (SPA) navigation often relies only on visual styling (like `is-active` CSS classes) to indicate the current page, which screen readers ignore. Similarly, search inputs in toolbar wrappers sometimes rely on `<label><span>` text that may not be directly associated via `for`/`id`, or rely purely on placeholders, making the input context unclear to assistive tech.
+**Action:** Always verify that SPA navigation links explicitly toggle `aria-current="page"` when marked active. For search/filter inputs, even if visually labeled or styled, always provide a clear `aria-label` (e.g. `aria-label="Filter tickers"`) to guarantee accessible context without relying on DOM proximity.
