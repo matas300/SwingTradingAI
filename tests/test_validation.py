@@ -1,5 +1,5 @@
 import pytest
-from datetime import datetime, timezone
+from datetime import datetime
 from swing_trading.validation import (
     normalize_ticker,
     normalize_ticker_list,
