@@ -1,0 +1,3 @@
+## 2025-02-20 - Explicit :focus-visible rules
+**Learning:** Adding a global `*:focus-visible` can introduce unwanted outlines in unpredictable places or conflict with specific component designs.
+**Action:** Always append `:focus-visible` directly to existing component classes (e.g., `.primary-button:focus-visible`) and use design tokens for colors to maintain intentional and consistent keyboard accessibility.
