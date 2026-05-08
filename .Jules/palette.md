@@ -1,0 +1,3 @@
+## 2024-05-08 - Added focus-visible styles for keyboard accessibility
+**Learning:** The application lacked explicit `:focus-visible` styles for interactive elements (buttons, inputs, and links), which is a critical keyboard accessibility issue. Instead of using a global `*:focus-visible` which might introduce custom CSS side-effects, the appropriate pattern in this codebase is to append `:focus-visible` pseudo-class rules directly to existing component classes (e.g. `.primary-button:focus-visible`).
+**Action:** When adding new interactive components, always ensure they include a `:focus-visible` style that references existing design tokens like `var(--accent)` for the outline.
