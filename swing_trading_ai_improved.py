@@ -2,11 +2,8 @@ from __future__ import annotations
 
 from swing_trading import (
     DEFAULT_TICKERS,
-    TOP_100_US_TICKERS,
     ScannerConfig,
     build_console_summary_frame,
-    format_pct,
-    format_price,
     run_scan_legacy,
 )
 

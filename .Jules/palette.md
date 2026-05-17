@@ -1,0 +1,3 @@
+## 2025-04-07 - Add Keyboard Focus Styles
+**Learning:** The application lacked default focus indicators for interactive elements (buttons, links, inputs), making keyboard navigation nearly impossible to track visually. Relying solely on default browser outlines or hover styles is insufficient for accessibility.
+**Action:** Implemented a global `:focus-visible` rule in `styles.css` using the design system's `--accent` color with a 2px outline and 2px offset. Using `:focus-visible` ensures clear visual feedback for keyboard users without adding unnecessary outlines when users interact via mouse/touch.

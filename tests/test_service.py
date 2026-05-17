@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-import pytest
 
 from swing_trading.service import format_price, grade_from_confidence
 
