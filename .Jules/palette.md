@@ -1,0 +1,3 @@
+## 2024-05-18 - Add Focus Visible Styles for Keyboard Navigation
+**Learning:** Default browser focus rings are often stripped out or insufficient for good keyboard navigation visibility, especially on custom styled elements like buttons and navigation links. Generic `*:focus-visible` isn't ideal as it can have unintended side-effects. Relying on explicitly appended pseudo-classes like `.primary-button:focus-visible` with a distinct `var(--accent)` outline provides clear, accessible feedback for keyboard users.
+**Action:** Always append explicit `:focus-visible` styles to interactive components (buttons, inputs, links) to ensure strong keyboard accessibility by default.
