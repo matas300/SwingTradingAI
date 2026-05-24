@@ -1,0 +1,3 @@
+## 2024-05-24 - Explicit Component Focus States using Tokens
+**Learning:** Using global `*:focus-visible` can sometimes be too aggressive or conflict with other styling, especially across multiple themes (light/dark). However, omitting keyboard focus indicators entirely breaks accessibility for keyboard users.
+**Action:** Append explicit `:focus-visible` pseudo-class rules directly to existing component classes (e.g., `.primary-button:focus-visible`, `.nav-stack a:focus-visible`) and reference existing CSS variables/design tokens like `var(--accent)` for the outline. This ensures a consistent, accessible, and theme-aware focus indicator without relying on global wildcards.
