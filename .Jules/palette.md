@@ -1,0 +1,3 @@
+## 2024-05-18 - Adding Explicit Focus Visible Styles for Keyboard Navigation
+**Learning:** Native `focus-visible` pseudo-class styles are missing, causing keyboard accessibility issues since the focus outline on tab navigation doesn't provide visual feedback. Attempting to add global focus styles (e.g., `*:focus-visible`) might introduce unwanted outlines.
+**Action:** Append explicitly defined `:focus-visible` pseudo-class rules directly to existing interactive component classes (e.g., `.primary-button:focus-visible`, `.nav-stack a:focus-visible`) and reference existing design tokens like `var(--accent)` for the outline. This pattern ensures clear keyboard navigation without global CSS side effects and strictly targets components intended to be focusable.
