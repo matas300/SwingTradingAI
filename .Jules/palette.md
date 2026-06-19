@@ -1,0 +1,3 @@
+## 2024-05-29 - Keyboard Focus Indicators for App Accessibility
+**Learning:** Adding universal focus indicators (like `*:focus-visible`) often inadvertently breaks carefully designed global reset styles or component-specific layouts. However, using existing CSS variables (like `var(--accent)`) to append `:focus-visible` pseudo-class directly to explicitly declared interactive components (e.g., `.primary-button:focus-visible`) avoids style leakage and guarantees keyboard accessibility.
+**Action:** Always append `:focus-visible` to explicitly defined components rather than trying to apply global rules or custom CSS that can affect overall styling and layout constraints.
