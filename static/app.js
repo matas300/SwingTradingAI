@@ -156,7 +156,13 @@ function renderView(state) {
 
 function updateActiveNav(state) {
   document.querySelectorAll("[data-nav]").forEach((link) => {
-    link.classList.toggle("is-active", link.dataset.nav === state.route.view);
+    const isActive = link.dataset.nav === state.route.view;
+    link.classList.toggle("is-active", isActive);
+    if (isActive) {
+      link.setAttribute("aria-current", "page");
+    } else {
+      link.removeAttribute("aria-current");
+    }
   });
 }
 
