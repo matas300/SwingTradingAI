@@ -1,0 +1,3 @@
+## 2024-05-06 - Explicit `:focus-visible` outlines for keyboard accessibility
+**Learning:** To support keyboard navigation (tabbing) across components without globally adding `*:focus-visible` (which might introduce unintended side-effects or break specific component styling overrides), explicitly defining `:focus-visible` pseudo-class rules for specific interactive components (e.g., buttons, inputs, links) ensures safe, clean focus rings that match existing design tokens (e.g. `var(--accent)`).
+**Action:** Next time keyboard accessibility needs improvement, apply targeted `:focus-visible` styles to individual interactive classes rather than utilizing a global wildcard.
