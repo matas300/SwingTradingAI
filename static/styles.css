@@ -670,3 +670,17 @@ dialog[open] {
     grid-template-columns: 1fr;
   }
 }
+
+/* Accessibility: Keyboard focus states */
+.primary-button:focus-visible,
+.secondary-button:focus-visible,
+.ghost-button:focus-visible,
+.table-button:focus-visible,
+.inline-button:focus-visible,
+.nav-stack a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
