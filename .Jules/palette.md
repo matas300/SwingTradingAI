@@ -1,0 +1,3 @@
+## 2026-06-11 - Keyboard Accessibility Focus Rings
+**Learning:** The project relies entirely on vanilla CSS variables and classes without a comprehensive reset or global focus handling (like `*:focus-visible`). As a result, critical interactive elements (buttons, nav links, form inputs) lack visible focus states for keyboard navigation by default.
+**Action:** Always manually define `:focus-visible` pseudoclasses for all interactive component classes (e.g., `.primary-button`, `.nav-stack a`) and explicitly map them to existing design tokens (`var(--accent)`) to ensure full keyboard accessibility without compromising the design system's constraints.
