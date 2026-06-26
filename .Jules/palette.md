@@ -1,0 +1,3 @@
+## 2024-05-24 - explicit focus-visible styles instead of wildcard focus styles
+**Learning:** Adding `*:focus-visible` to styles.css might be tempting as a catch-all approach to keyboard accessibility, but it can create unwanted outlines on elements that shouldn't have them, or conflict with specific component designs.
+**Action:** Instead, explicitly append `:focus-visible` pseudo-class rules directly to existing component classes (e.g., `.primary-button:focus-visible`, `.nav-stack a:focus-visible`) and reference existing design tokens like `var(--accent)` for the outline to maintain clean accessibility.
