@@ -1,0 +1,3 @@
+## 2024-05-24 - explicit :focus-visible states for custom interactive components
+**Learning:** Custom interactive components (like `.primary-button` or `.nav-stack a`) that use custom styling or overrides can lack a visible focus indicator by default when navigated via keyboard, negatively impacting accessibility.
+**Action:** Always append an explicit `:focus-visible` pseudo-class with a distinct visual outline (e.g., `outline: 2px solid var(--accent); outline-offset: 2px;`) directly to these component classes, avoiding broad global selectors like `*:focus-visible` to maintain visual design while ensuring keyboard a11y.
