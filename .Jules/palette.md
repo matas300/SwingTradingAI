@@ -1,0 +1,3 @@
+## 2023-10-27 - Implement Explicit Keyboard Focus States
+**Learning:** Explicit focus visible states (`:focus-visible`) are critical for keyboard accessibility. Applying them directly to existing component classes rather than using a global reset (`*:focus-visible`) ensures better compatibility with design system tokens and prevents unexpected visual side effects on non-interactive elements or layout containers.
+**Action:** When adding keyboard focus states, always target the specific interactive classes (e.g., buttons, inputs, links) and use `outline-offset` to provide clear separation from the element boundary.
