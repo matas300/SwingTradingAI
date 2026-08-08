@@ -1,0 +1,3 @@
+## 2024-05-18 - Keyboard Accessibility & Explicit Focus Styles
+**Learning:** Adding a global `*:focus-visible` can introduce unintended layout shifts or visually jarring outlines across a large app. However, omitting focus styles completely degrades accessibility for keyboard users who rely on clear visual indicators.
+**Action:** When adding `:focus-visible` for keyboard accessibility, explicitly append it to existing component classes (e.g., `.primary-button:focus-visible`) and native inputs/selects, utilizing existing design tokens (like `var(--accent)`) to maintain brand consistency while ensuring compliance without global side-effects.
