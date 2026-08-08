@@ -1,0 +1,3 @@
+## 2024-05-04 - Explicit Focus Visible for Custom Themes
+**Learning:** Custom UI themes and CSS resets often strip or obscure the default browser focus rings (e.g., `outline: none` or background color clashes), rendering interactive elements inaccessible to keyboard users unless explicitly defined. This is especially true for components composed via utility classes or custom borders.
+**Action:** When working on design systems with custom themes, always define component-level `:focus-visible` pseudo-class states (e.g., `.primary-button:focus-visible`) that contrast with the active theme background, rather than relying on global `*:focus-visible` which can be unpredictable or overridden by component specificity.
