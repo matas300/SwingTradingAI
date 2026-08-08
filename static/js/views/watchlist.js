@@ -28,10 +28,10 @@ export function renderWatchlist(state) {
       <div class="toolbar">
         <label class="search-field">
           <span>Search</span>
-          <input id="watchlist-query" type="search" placeholder="NVDA, long, high reliability" value="${escapeHtml(state.filters.query)}">
+          <input id="watchlist-query" type="search" aria-label="Filter tickers" placeholder="NVDA, long, high reliability" value="${escapeHtml(state.filters.query)}">
         </label>
         <label class="toggle-inline">
-          <input id="actionable-only" type="checkbox" ${actionableOnly ? "checked" : ""}>
+          <input id="actionable-only" type="checkbox" aria-label="Show actionable only" ${actionableOnly ? "checked" : ""}>
           <span>Actionable only</span>
         </label>
       </div>
