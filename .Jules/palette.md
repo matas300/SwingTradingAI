@@ -1,0 +1,3 @@
+## 2024-05-24 - Keyboard Accessibility Focus States
+**Learning:** The application entirely lacked visual focus indicators for keyboard navigation across all interactive components, making it impossible for keyboard users to track their current position on the page. Using standard `*:focus-visible` was avoided to prevent global side effects.
+**Action:** Added explicit `:focus-visible` pseudo-class rules directly to existing component classes (e.g., `.primary-button`, `.nav-stack a`, `.list-row`) referencing the `var(--accent)` design token for the outline to provide clear, consistent keyboard accessibility without breaking mouse click styles.
