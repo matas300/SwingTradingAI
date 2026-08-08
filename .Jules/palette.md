@@ -1,0 +1,3 @@
+## 2026-06-18 - Missing Focus States for Interactive Elements
+**Learning:** The application's interactive elements (buttons, inputs, links) lacked clear focus indicators, which severely hindered keyboard navigation for a11y. Standard user agent focus outlines may not be sufficient or may be overridden, making it hard for users to know which element is focused.
+**Action:** Always ensure that interactive UI elements have a defined `:focus-visible` outline using the project's design tokens (like `var(--accent)`) to provide accessible keyboard navigation while keeping mouse interaction visually unchanged.
