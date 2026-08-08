@@ -670,3 +670,18 @@ dialog[open] {
     grid-template-columns: 1fr;
   }
 }
+
+/* Accessibility: Focus visible styles */
+.nav-stack a:focus-visible,
+.primary-button:focus-visible,
+.secondary-button:focus-visible,
+.ghost-button:focus-visible,
+.table-button:focus-visible,
+.inline-button:focus-visible,
+.search-field input:focus-visible,
+.form-grid input:focus-visible,
+.form-grid select:focus-visible,
+.form-grid textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
