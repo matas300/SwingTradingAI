@@ -1,0 +1,3 @@
+## 2026-06-07 - Explicit Focus Outlines Without Global Resets
+**Learning:** Vanilla CSS projects often lack global reset tools like Tailwind's `focus-visible:ring`. Applying `*:focus-visible` can introduce unwanted artifacts or performance hits, while relying on default browser focus rings leads to inconsistent a11y experiences across different elements.
+**Action:** Append explicitly defined `:focus-visible` pseudo-class rules directly to key interactive component classes (e.g., `.primary-button:focus-visible`) and form elements. Use existing design tokens (`var(--accent)`) and offset the outline (`outline-offset: 2px`) to ensure crisp, accessible keyboard navigation that perfectly matches the local design system without side effects.
