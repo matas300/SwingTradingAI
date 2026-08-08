@@ -1,0 +1,3 @@
+## 2024-05-23 - Focus Accessibility via Explicit Targeting
+**Learning:** Using global `*:focus-visible` to add focus outlines can unintentionally cause styling artifacts or conflict with existing complex component designs. Conversely, many interactive elements in this app lacked *any* focus indication.
+**Action:** When improving keyboard accessibility, explicitly append `:focus-visible` pseudo-class rules only to specific, intended interactive component classes (like `.primary-button`, `.nav-stack a`, `input`) referencing existing design tokens like `var(--accent)`. This ensures a seamless, deliberate keyboard navigation experience without polluting non-interactive or layout elements.
