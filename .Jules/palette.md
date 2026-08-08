@@ -1,0 +1,3 @@
+## 2026-05-28 - Add Keyboard Focus States for Accessibility
+**Learning:** To ensure keyboard accessibility without adding custom global CSS (like `*:focus-visible`) which might have unintended consequences or conflict with design, append explicitly defined `:focus-visible` pseudo-class rules directly to existing component classes (e.g., `.primary-button:focus-visible`) and reference existing design tokens like `var(--accent)` for the outline.
+**Action:** Next time, identify all interactive elements (buttons, inputs, links) and explicitly add `:focus-visible` styles to them using existing design tokens to maintain a consistent and accessible experience for keyboard navigation.
