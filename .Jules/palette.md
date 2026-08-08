@@ -1,0 +1,3 @@
+## 2024-04-20 - Adding keyboard accessibility via explicit focus states
+**Learning:** The base CSS styling stripped default browser focus outlines without providing an alternative for interactive elements (`a`, `button`, `input`, `select`, `textarea`), severely degrading keyboard accessibility. Focus states should leverage existing CSS variables (like `var(--accent)`) to remain consistent with the design system.
+**Action:** When adding or verifying interactive UI components in this app, ensure `:focus-visible` states are explicitly defined using the project's existing color tokens (e.g., `--accent`) and standard `outline` / `outline-offset` properties to maintain both accessibility and visual harmony.
