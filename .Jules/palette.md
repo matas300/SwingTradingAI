@@ -1,0 +1,3 @@
+## 2024-05-27 - Component-Level Explicit Focus States
+**Learning:** To ensure keyboard accessibility without adding custom global CSS (e.g., `*:focus-visible`), explicit `:focus-visible` pseudo-class rules must be appended directly to existing component classes (e.g., `.primary-button:focus-visible`).
+**Action:** Always map focus styles directly to the specific components involved using existing design tokens like `var(--accent)` to maintain accessibility while staying within strict styling boundaries.
