@@ -80,6 +80,21 @@ textarea {
   font: inherit;
 }
 
+.primary-button:focus-visible,
+.secondary-button:focus-visible,
+.ghost-button:focus-visible,
+.table-button:focus-visible,
+.inline-button:focus-visible,
+.signal-spotlight:focus-visible,
+.list-row:focus-visible,
+.nav-stack a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .app-shell {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
